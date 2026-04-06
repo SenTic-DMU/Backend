@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/sentric?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    show-sql: true
+
+jwt:
+  secret: sentric-secret-key-must-be-at-least-32-characters-long
+  access-token-expiry: 1800000
+  refresh-token-expiry: 604800000
+
+ai:
+  openai:
+    api-key: 나중에입력
+    base-url: https://api.openai.com/v1
+    chat-model: gpt-4o
+    tts-model: tts-1
+    stt-model: whisper-1
+
+oauth2:
+  kakao:
+    client-id: 나중에입력
+    user-info-url: https://kapi.kakao.com/v2/user/me
+  google:
+    client-id: 나중에입력
+    user-info-url: https://www.googleapis.com/oauth2/v3/userinfo
+
+logging:
+  level:
+    com.project.sentric: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
