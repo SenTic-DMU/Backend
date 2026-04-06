@@ -16,6 +16,7 @@ public class User extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -48,7 +49,7 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean emailVerified; // 이메일 인증 여부 (SES)
 
-    @Column
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt; // 소프트 딜리트
 
 
@@ -88,5 +89,20 @@ public class User extends BaseTimeEntity {
     public void deactivate() {
         this.status = Status.INACTIVE;
         this.deletedAt = LocalDateTime.now();
+    }
+
+
+    // ── 정적 생성 메서드 ──────────────────────────────────
+
+    public static User createLocalUser(String email, String encodedPassword, String nickname) {
+        return User.builder()
+                .email(email)
+                .password(encodedPassword)
+                .nickname(nickname)
+                .provider(Provider.LOCAL)
+                .role(Role.USER)
+                .status(Status.ACTIVE)
+                .emailVerified(false)
+                .build();
     }
 }
