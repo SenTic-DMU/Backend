@@ -4,6 +4,7 @@ import com.project.sentic.infra.ai.dto.ChatCompletionResponse;
 import com.project.sentic.infra.ai.dto.ChatMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,5 +36,13 @@ public class OpenAiService {
         messages.addAll(history);
         messages.add(ChatMessage.user(userMessage));
         return openAiClient.chat(messages);
+    }
+
+    public String transcribe(MultipartFile file) {
+        return openAiClient.transcribe(file);
+    }
+
+    public byte[] textToSpeech(String text, String voice) {
+        return openAiClient.textToSpeech(text, voice);
     }
 }
