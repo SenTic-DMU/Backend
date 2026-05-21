@@ -29,6 +29,14 @@ oauth2:
     client-id: 나중에입력
     user-info-url: https://www.googleapis.com/oauth2/v3/userinfo
 
+spring:
+  mail:
+    host: email-smtp.ap-northeast-2.amazonaws.com
+    port: 587
+    username: 나중에입력  # AWS SES SMTP 자격증명
+    password: 나중에입력
+    from: noreply@sentic.app
+
 logging:
   level:
     com.project.sentic: DEBUG

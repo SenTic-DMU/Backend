@@ -32,3 +32,18 @@ management:
   endpoint:
     health:
       show-details: never
+
+spring:
+  mail:
+    host: ${MAIL_HOST:email-smtp.ap-northeast-2.amazonaws.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    from: ${MAIL_FROM:noreply@sentic.app}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true

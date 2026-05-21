@@ -1,8 +1,6 @@
 package com.project.sentic.domain.user.controller;
 
-import com.project.sentic.domain.user.dto.LoginRequestDto;
-import com.project.sentic.domain.user.dto.SignupRequestDto;
-import com.project.sentic.domain.user.dto.TokenResponseDto;
+import com.project.sentic.domain.user.dto.*;
 import com.project.sentic.domain.user.service.AuthService;
 import com.project.sentic.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,5 +66,32 @@ public class AuthController {
     @PostMapping("/logout")
     public ApiResponse<String> logout() {
         return ApiResponse.success("로그아웃 되었습니다.");
+    }
+
+    @Operation(summary = "이메일(아이디) 찾기", description = "닉네임으로 가입된 이메일을 마스킹하여 반환합니다.")
+    @PostMapping("/find-email")
+    public ApiResponse<FindEmailResponseDto> findEmail(@Valid @RequestBody FindEmailRequestDto request) {
+        return ApiResponse.success(authService.findEmail(request));
+    }
+
+    @Operation(summary = "비밀번호 재설정 인증코드 발송", description = "입력한 이메일로 6자리 인증코드를 발송합니다. 인증코드는 5분간 유효합니다.")
+    @PostMapping("/password/reset-request")
+    public ApiResponse<String> sendPasswordResetCode(@Valid @RequestBody PasswordResetRequestDto request) {
+        authService.sendPasswordResetCode(request);
+        return ApiResponse.success("인증코드가 발송되었습니다.");
+    }
+
+    @Operation(summary = "인증코드 확인", description = "발송된 인증코드의 유효성을 확인합니다.")
+    @PostMapping("/password/verify-code")
+    public ApiResponse<String> verifyCode(@Valid @RequestBody VerifyCodeRequestDto request) {
+        authService.verifyCode(request);
+        return ApiResponse.success("인증코드가 확인되었습니다.");
+    }
+
+    @Operation(summary = "비밀번호 재설정", description = "인증코드 검증 후 새 비밀번호로 변경합니다.")
+    @PostMapping("/password/reset")
+    public ApiResponse<String> resetPassword(@Valid @RequestBody PasswordResetDto request) {
+        authService.resetPassword(request);
+        return ApiResponse.success("비밀번호가 재설정되었습니다.");
     }
 }
