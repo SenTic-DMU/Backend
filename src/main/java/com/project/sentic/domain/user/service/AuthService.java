@@ -35,40 +35,40 @@ public class AuthService {
 
     /**
      * 일반 회원가입
-     * 1. 이메일 중복 확인
+     * 1. loginId / 이메일 중복 확인
      * 2. 비밀번호 암호화
      * 3. 유저 저장
      * 4. JWT 토큰 발급
      */
     @Transactional
     public TokenResponseDto signup(SignupRequestDto request) {
-        // 이메일 중복 확인
+        if (userRepository.existsByLoginId(request.getLoginId())) {
+            throw new CustomException(ErrorCode.LOGIN_ID_ALREADY_EXISTS);
+        }
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
-        // 비밀번호 암호화 후 유저 저장
         User user = User.createLocalUser(
+                request.getLoginId(),
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 request.getNickname()
         );
         userRepository.save(user);
 
-        // JWT 토큰 발급
         return generateToken(user);
     }
 
     /**
      * 일반 로그인
-     * 1. 이메일로 유저 조회
+     * 1. loginId로 유저 조회
      * 2. 비밀번호 확인
      * 3. 계정 활성화 확인
      * 4. JWT 토큰 발급
      */
     public TokenResponseDto login(LoginRequestDto request) {
-        // 이메일로 유저 조회
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByLoginId(request.getLoginId())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         // 소셜 로그인 유저는 일반 로그인 불가
@@ -109,13 +109,12 @@ public class AuthService {
     }
 
     /**
-     * 닉네임으로 이메일(아이디) 찾기
-     * 이메일 앞부분을 마스킹하여 반환
+     * 이메일로 loginId(아이디) 찾기
      */
-    public FindEmailResponseDto findEmail(FindEmailRequestDto request) {
-        User user = userRepository.findByNickname(request.getNickname())
+    public FindEmailResponseDto findLoginId(FindEmailRequestDto request) {
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        return new FindEmailResponseDto(maskEmail(user.getEmail()));
+        return new FindEmailResponseDto(user.getLoginId());
     }
 
     /**
@@ -175,13 +174,4 @@ public class AuthService {
         return new TokenResponseDto(accessToken, refreshToken);
     }
 
-    private String maskEmail(String email) {
-        int atIndex = email.indexOf('@');
-        String local = email.substring(0, atIndex);
-        String domain = email.substring(atIndex);
-        if (local.length() <= 1) {
-            return local + "***" + domain;
-        }
-        return local.charAt(0) + "***" + local.charAt(local.length() - 1) + domain;
-    }
 }

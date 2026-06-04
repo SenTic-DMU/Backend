@@ -7,5 +7,5 @@ import lombok.Getter;
 @AllArgsConstructor
 public class FindEmailResponseDto {
 
-    private String maskedEmail;
+    private String loginId;
 }

@@ -14,10 +14,11 @@ import org.springframework.web.bind.annotation.*;
  *
  * 회원가입, 로그인, 토큰 재발급 API를 담당해요.
  *
- * POST /api/auth/signup  → 회원가입
- * POST /api/auth/login   → 로그인
- * POST /api/auth/refresh → 토큰 재발급
- * POST /api/auth/logout  → 로그아웃
+ * POST /api/auth/signup   → 회원가입
+ * POST /api/auth/login    → 로그인
+ * POST /api/auth/refresh  → 토큰 재발급
+ * POST /api/auth/logout   → 로그아웃
+ * POST /api/auth/find-id  → 아이디 찾기
  */
 @Tag(name = "Auth", description = "인증 관련 API")
 @RestController
@@ -68,10 +69,10 @@ public class AuthController {
         return ApiResponse.success("로그아웃 되었습니다.");
     }
 
-    @Operation(summary = "이메일(아이디) 찾기", description = "닉네임으로 가입된 이메일을 마스킹하여 반환합니다.")
-    @PostMapping("/find-email")
-    public ApiResponse<FindEmailResponseDto> findEmail(@Valid @RequestBody FindEmailRequestDto request) {
-        return ApiResponse.success(authService.findEmail(request));
+    @Operation(summary = "아이디 찾기", description = "가입한 이메일을 입력하면 loginId를 반환합니다.")
+    @PostMapping("/find-id")
+    public ApiResponse<FindEmailResponseDto> findLoginId(@Valid @RequestBody FindEmailRequestDto request) {
+        return ApiResponse.success(authService.findLoginId(request));
     }
 
     @Operation(summary = "비밀번호 재설정 인증코드 발송", description = "입력한 이메일로 6자리 인증코드를 발송합니다. 인증코드는 5분간 유효합니다.")
