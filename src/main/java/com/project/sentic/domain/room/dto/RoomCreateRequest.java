@@ -10,16 +10,17 @@ import java.util.List;
 @NoArgsConstructor
 public class RoomCreateRequest {
 
-    private String title;
-    private String description;
+    private String roomName;
+    private String situation;
     private Room.RoomType roomType;
+    private Room.Difficulty difficulty;
     private List<CharacterRequest> characters;
 
     @Getter
     @NoArgsConstructor
     public static class CharacterRequest {
         private String name;
-        private String iconType; // MALE, FEMALE, CHILD, ELDER, ROBOT
+        private String iconType;
         private String personality;
     }
 }

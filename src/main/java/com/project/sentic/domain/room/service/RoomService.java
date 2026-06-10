@@ -1,11 +1,11 @@
 package com.project.sentic.domain.room.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.sentic.domain.room.dto.RoomCreateRequest;
 import com.project.sentic.domain.room.dto.RoomResponse;
 import com.project.sentic.domain.room.entity.Room;
 import com.project.sentic.domain.room.repository.RoomRepository;
-import com.project.sentic.domain.user.entity.User;
-import com.project.sentic.domain.user.repository.UserRepository;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -21,46 +21,52 @@ import java.util.stream.Collectors;
 public class RoomService {
 
     private final RoomRepository roomRepository;
-    private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
 
-    // 방 생성
     @Transactional
     public RoomResponse createRoom(Long userId, RoomCreateRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        String charactersJson = serializeCharacters(request.getCharacters());
 
         Room room = Room.builder()
-                .user(user)
-                .title(request.getTitle())
-                .description(request.getDescription())
+                .userId(userId)
+                .roomName(request.getRoomName())
+                .situation(request.getSituation())
                 .roomType(request.getRoomType())
+                .difficulty(request.getDifficulty())
+                .characters(charactersJson)
                 .build();
 
         return RoomResponse.from(roomRepository.save(room));
     }
 
-    // 방 목록 조회
     public List<RoomResponse> getRooms(Long userId, Room.RoomType roomType) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
         return roomRepository
-                .findByUserAndRoomTypeAndDeletedFalseOrderByLastMessageAtDesc(user, roomType)
+                .findByUserIdAndRoomTypeAndDeletedFalseOrderByLastActiveAtDesc(userId, roomType)
                 .stream()
                 .map(RoomResponse::from)
                 .collect(Collectors.toList());
     }
 
-    // 방 삭제
     @Transactional
     public void deleteRoom(Long userId, Long roomId) {
         Room room = roomRepository.findByIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
 
-        if (!room.getUser().getId().equals(userId)) {
+        if (!room.getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
         }
 
         room.delete();
+    }
+
+    private String serializeCharacters(List<RoomCreateRequest.CharacterRequest> characters) {
+        if (characters == null || characters.isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+        try {
+            return objectMapper.writeValueAsString(characters);
+        } catch (JsonProcessingException e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
     }
 }

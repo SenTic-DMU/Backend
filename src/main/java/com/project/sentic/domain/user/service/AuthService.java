@@ -1,17 +1,20 @@
 package com.project.sentic.domain.user.service;
 
-import com.project.sentic.domain.user.dto.LoginRequestDto;
-import com.project.sentic.domain.user.dto.SignupRequestDto;
-import com.project.sentic.domain.user.dto.TokenResponseDto;
+import com.project.sentic.domain.user.dto.*;
 import com.project.sentic.domain.user.entity.User;
 import com.project.sentic.domain.user.repository.UserRepository;
 import com.project.sentic.global.auth.JwtTokenProvider;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
+import com.project.sentic.global.infra.email.EmailService;
+import com.project.sentic.global.infra.email.VerificationCodeStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+
 
 /**
  * 인증 서비스
@@ -26,43 +29,47 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final EmailService emailService;
+    private final VerificationCodeStore verificationCodeStore;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     /**
      * 일반 회원가입
-     * 1. 이메일 중복 확인
+     * 1. loginId / 이메일 중복 확인
      * 2. 비밀번호 암호화
      * 3. 유저 저장
      * 4. JWT 토큰 발급
      */
     @Transactional
     public TokenResponseDto signup(SignupRequestDto request) {
-        // 이메일 중복 확인
+        if (userRepository.existsByLoginId(request.getLoginId())) {
+            throw new CustomException(ErrorCode.LOGIN_ID_ALREADY_EXISTS);
+        }
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
-        // 비밀번호 암호화 후 유저 저장
         User user = User.createLocalUser(
+                request.getLoginId(),
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 request.getNickname()
         );
         userRepository.save(user);
 
-        // JWT 토큰 발급
         return generateToken(user);
     }
 
     /**
      * 일반 로그인
-     * 1. 이메일로 유저 조회
+     * 1. loginId로 유저 조회
      * 2. 비밀번호 확인
      * 3. 계정 활성화 확인
      * 4. JWT 토큰 발급
      */
     public TokenResponseDto login(LoginRequestDto request) {
-        // 이메일로 유저 조회
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByLoginId(request.getLoginId())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         // 소셜 로그인 유저는 일반 로그인 불가
@@ -100,6 +107,60 @@ public class AuthService {
 
         // 새 토큰 발급
         return generateToken(user);
+    }
+
+    /**
+     * 이메일로 loginId(아이디) 찾기
+     */
+    public FindEmailResponseDto findLoginId(FindEmailRequestDto request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        return new FindEmailResponseDto(user.getLoginId());
+    }
+
+    /**
+     * 비밀번호 재설정 인증코드 발송
+     * 1. 이메일로 유저 조회
+     * 2. 소셜 로그인 유저 차단
+     * 3. 6자리 인증코드 생성 후 이메일 발송 + 저장 (5분 TTL)
+     */
+    @Transactional
+    public void sendPasswordResetCode(PasswordResetRequestDto request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getProvider() != User.Provider.LOCAL) {
+            throw new CustomException(ErrorCode.SOCIAL_LOGIN_USER);
+        }
+
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        verificationCodeStore.save(request.getEmail(), code);
+        emailService.sendPasswordResetCode(request.getEmail(), code);
+    }
+
+    /**
+     * 인증코드 확인
+     * 코드가 유효하지 않거나 만료된 경우 예외 발생
+     */
+    public void verifyCode(VerifyCodeRequestDto request) {
+        verificationCodeStore.verify(request.getEmail(), request.getCode());
+    }
+
+    /**
+     * 비밀번호 재설정
+     * 1. 인증코드 재검증
+     * 2. 새 비밀번호 암호화 후 저장
+     * 3. 인증코드 삭제
+     */
+    @Transactional
+    public void resetPassword(PasswordResetDto request) {
+        verificationCodeStore.verify(request.getEmail(), request.getCode());
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+        verificationCodeStore.remove(request.getEmail());
     }
 
     /**

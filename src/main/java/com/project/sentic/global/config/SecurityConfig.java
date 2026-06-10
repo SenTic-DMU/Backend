@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -47,6 +48,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // CORS 설정 활성화 (CorsConfig 빈 사용)
+                .cors(Customizer.withDefaults())
+
                 // CSRF 비활성화 (REST API는 필요 없음)
                 .csrf(AbstractHttpConfigurer::disable)
 
@@ -67,6 +71,9 @@ public class SecurityConfig {
                         .requestMatchers("/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // AI 선행 검증용 (검증 완료 후 제거)
+                        .requestMatchers("/api/ai/test/**").permitAll()
 
                         // 관리자만 접근 가능
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

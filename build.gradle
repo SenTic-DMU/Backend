@@ -49,6 +49,9 @@ dependencies {
     // HTTP Client (소셜 로그인, AI API 호출용)
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
+    // Email (AWS SES SMTP)
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
     // 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

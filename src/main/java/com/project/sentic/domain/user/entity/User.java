@@ -19,6 +19,9 @@ public class User extends BaseTimeEntity {
     @Column(name = "user_id")
     private Long id;
 
+    @Column(nullable = false, unique = true, length = 50)
+    private String loginId;
+
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -94,8 +97,9 @@ public class User extends BaseTimeEntity {
 
     // ── 정적 생성 메서드 ──────────────────────────────────
 
-    public static User createLocalUser(String email, String encodedPassword, String nickname) {
+    public static User createLocalUser(String loginId, String email, String encodedPassword, String nickname) {
         return User.builder()
+                .loginId(loginId)
                 .email(email)
                 .password(encodedPassword)
                 .nickname(nickname)

@@ -15,13 +15,20 @@ public enum ErrorCode {
 
     // 회원
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
+    LOGIN_ID_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다."),
     INACTIVE_USER(HttpStatus.FORBIDDEN, "비활성화된 계정입니다."),
+    SOCIAL_LOGIN_USER(HttpStatus.BAD_REQUEST, "소셜 로그인 사용자는 비밀번호를 재설정할 수 없습니다."),
 
     // 인증
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
+    INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "잘못된 인증코드입니다."),
+    VERIFICATION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "인증코드가 만료되었습니다."),
+
+    // 이메일
+    EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 발송에 실패했습니다."),
 
     // 소셜 로그인
     OAUTH_USER_INFO_FAILED(HttpStatus.BAD_GATEWAY, "소셜 사용자 정보를 가져올 수 없습니다."),
