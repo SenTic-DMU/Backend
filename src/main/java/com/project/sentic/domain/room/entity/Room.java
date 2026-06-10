@@ -1,6 +1,5 @@
 package com.project.sentic.domain.room.entity;
 
-import com.project.sentic.domain.user.entity.User;
 import com.project.sentic.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,31 +16,38 @@ public class Room extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "room_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @Column(nullable = false, length = 100)
-    private String title; // 대화방 제목 (예: 카페에서 주문하기)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "room_type", nullable = false)
+    private RoomType roomType;
+
+    @Column(name = "room_name", nullable = false, length = 100)
+    private String roomName;
 
     @Column(columnDefinition = "TEXT")
-    private String description; // 상황 설명
+    private String situation;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private RoomType roomType; // VOICE, CHAT
+    private Difficulty difficulty;
 
-    @Column(length = 255)
-    private String lastMessage; // 목록에서 보이는 마지막 대화 미리보기
+    @Column(columnDefinition = "TEXT")
+    private String characters; // JSON array of CharacterInfo
 
-    @Column
-    private LocalDateTime lastMessageAt; // 마지막 대화 시간
+    @Column(name = "memory_bank", columnDefinition = "TEXT")
+    private String memoryBank; // JSON
 
-    @Column(nullable = false)
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt;
+
+    @Column(name = "is_deleted", nullable = false)
     @Builder.Default
-    private boolean deleted = false; // 소프트 딜리트
+    private boolean deleted = false;
 
 
     // ── Enum ──────────────────────────────────────
@@ -50,12 +56,19 @@ public class Room extends BaseTimeEntity {
         VOICE, CHAT
     }
 
+    public enum Difficulty {
+        BEGINNER, INTERMEDIATE, ADVANCED
+    }
+
 
     // ── 수정 메서드 ──────────────────────────────────
 
-    public void updateLastMessage(String lastMessage) {
-        this.lastMessage = lastMessage;
-        this.lastMessageAt = LocalDateTime.now();
+    public void updateMemoryBank(String memoryBank) {
+        this.memoryBank = memoryBank;
+    }
+
+    public void updateLastActiveAt() {
+        this.lastActiveAt = LocalDateTime.now();
     }
 
     public void delete() {

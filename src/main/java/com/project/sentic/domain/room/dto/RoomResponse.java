@@ -11,21 +11,21 @@ import java.time.LocalDateTime;
 public class RoomResponse {
 
     private Long id;
-    private String title;
-    private String description;
+    private String roomName;
+    private String situation;
     private Room.RoomType roomType;
-    private String lastMessage;
-    private LocalDateTime lastMessageAt;
+    private Room.Difficulty difficulty;
+    private LocalDateTime lastActiveAt;
     private LocalDateTime createdAt;
 
     public static RoomResponse from(Room room) {
         return RoomResponse.builder()
                 .id(room.getId())
-                .title(room.getTitle())
-                .description(room.getDescription())
+                .roomName(room.getRoomName())
+                .situation(room.getSituation())
                 .roomType(room.getRoomType())
-                .lastMessage(room.getLastMessage())
-                .lastMessageAt(room.getLastMessageAt())
+                .difficulty(room.getDifficulty())
+                .lastActiveAt(room.getLastActiveAt())
                 .createdAt(room.getCreatedAt())
                 .build();
     }
