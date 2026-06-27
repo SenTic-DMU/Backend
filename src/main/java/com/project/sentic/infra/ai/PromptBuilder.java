@@ -41,6 +41,7 @@ public class PromptBuilder {
         sb.append("Personality / Role: ").append(ch.personality()).append("\n\n");
 
         appendSituation(sb, ctx);
+        appendMemoryBank(sb, ctx.memoryBank());
         appendDifficulty(sb, ctx.difficulty());
 
         sb.append("\n## RULES — NEVER violate these\n");
@@ -66,6 +67,7 @@ public class PromptBuilder {
         sb.append("2. ").append(ch2.name()).append(" — ").append(ch2.personality()).append("\n\n");
 
         appendSituation(sb, ctx);
+        appendMemoryBank(sb, ctx.memoryBank());
         appendDifficulty(sb, ctx.difficulty());
 
         sb.append("\n## RULES — NEVER violate these\n");
@@ -79,6 +81,13 @@ public class PromptBuilder {
     }
 
     // ── 공통 섹션 ──────────────────────────────────────────────
+
+    private void appendMemoryBank(StringBuilder sb, String memoryBank) {
+        if (memoryBank == null || memoryBank.isBlank()) return;
+        sb.append("## MEMORY BANK\n");
+        sb.append("Use this information to maintain continuity with the user:\n");
+        sb.append(memoryBank).append("\n\n");
+    }
 
     private void appendSituation(StringBuilder sb, PromptContext ctx) {
         sb.append("## SITUATION: ").append(ctx.roomName()).append("\n");
@@ -121,6 +130,7 @@ public class PromptBuilder {
             String roomName,
             String situation,
             List<CharacterInfo> characters,
-            String difficulty          // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+            String difficulty,         // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+            String memoryBank          // nullable — rooms.memory_bank JSON
     ) {}
 }
