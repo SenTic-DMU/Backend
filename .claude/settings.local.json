@@ -1,13 +1,1 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(./gradlew compileJava *)",
-      "Bash(git checkout *)",
-      "Bash(git add *)",
-      "Bash(git commit -m ' *)",
-      "Bash(Get-ChildItem -Recurse src/main/java/com/project/sentic -Type Directory)",
-      "Bash(Select-Object FullName)",
-      "Skill(run)"
-    ]
-  }
-}
+{}

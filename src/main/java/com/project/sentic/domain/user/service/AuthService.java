@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 
-
 /**
  * 인증 서비스
  *
@@ -174,4 +173,5 @@ public class AuthService {
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
         return new TokenResponseDto(accessToken, refreshToken);
     }
+
 }
