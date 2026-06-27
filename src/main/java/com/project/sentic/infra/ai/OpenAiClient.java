@@ -44,18 +44,28 @@ public class OpenAiClient {
                 .messages(messages)
                 .build();
 
-        return webClient.post()
+        ChatCompletionResponse response = webClient.post()
                 .uri("/chat/completions")
                 .bodyValue(request)
                 .retrieve()
                 .onStatus(
                         status -> status.isError(),
-                        response -> response.bodyToMono(String.class)
+                        res -> res.bodyToMono(String.class)
                                 .doOnNext(body -> log.error("OpenAI Chat API 오류: {}", body))
                                 .then(Mono.error(new CustomException(ErrorCode.AI_API_ERROR)))
                 )
                 .bodyToMono(ChatCompletionResponse.class)
                 .block();
+
+        if (response != null && response.getUsage() != null) {
+            ChatCompletionResponse.Usage usage = response.getUsage();
+            log.info("[Token Usage] prompt={}, completion={}, total={}",
+                    usage.getPromptTokens(),
+                    usage.getCompletionTokens(),
+                    usage.getTotalTokens());
+        }
+
+        return response;
     }
 
     public String transcribe(MultipartFile file) {
