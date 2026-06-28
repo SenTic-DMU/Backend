@@ -1,45 +1,45 @@
 spring:
-  profiles:
-    active: dev
   jpa:
     hibernate:
-      ddl-auto: validate
-    open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
-  jackson:
-    time-zone: Asia/Seoul
-    date-format: yyyy-MM-dd HH:mm:ss
+      ddl-auto: none
+    show-sql: true
   mail:
-    host: ${MAIL_HOST:email-smtp.ap-northeast-2.amazonaws.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    from: ${MAIL_FROM:noreply@sentic.app}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
-            required: true
 
-server:
-  port: 8080
+ai:
+  openai:
+    base-url: https://api.openai.com/v1
+    chat-model: gpt-4o
+    tts-model: tts-1
+    stt-model: whisper-1
+
+oauth2:
+  kakao:
+    user-info-url: https://kapi.kakao.com/v2/user/me
+  google:
+    user-info-url: https://www.googleapis.com/oauth2/v3/userinfo
 
 springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    tags-sorter: alpha
   api-docs:
     path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
-  endpoint:
-    health:
-      show-details: never
+cloud:
+  aws:
+    s3:
+      bucket: ${S3_BUCKET:}
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:}
+      secret-key: ${AWS_SECRET_KEY:}
+      session-token: ${AWS_SESSION_TOKEN:}
+    region:
+      static: us-east-1
+      auto: false
+    stack:
+      auto: false

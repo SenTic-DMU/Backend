@@ -14,9 +14,12 @@ import com.project.sentic.infra.ai.OpenAiService;
 import com.project.sentic.infra.ai.PromptBuilder;
 import com.project.sentic.infra.ai.dto.CharacterInfo;
 import com.project.sentic.infra.ai.dto.ChatMessage;
+import com.project.sentic.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.project.sentic.domain.message.dto.VoiceResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,6 +34,7 @@ public class MessageService {
     private final OpenAiService openAiService;
     private final PromptBuilder promptBuilder;
     private final ObjectMapper objectMapper;
+    private final S3Service s3Service;
 
     @Transactional
     public ChatResponse chat(Long userId, Long roomId, String content) {
@@ -74,6 +78,63 @@ public class MessageService {
         room.updateLastActiveAt();
 
         return new ChatResponse(aiContent);
+    }
+
+    @Transactional
+    public VoiceResponse voice(Long userId, Long roomId, MultipartFile audioFile) {
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
+
+        if (!room.getUserId().equals(userId)) {
+            throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
+        }
+
+        // 1. STT: 음성 → 텍스트
+        String userText = openAiService.transcribe(audioFile);
+
+        // 2. 시스템 프롬프트 빌드
+        String systemPrompt = buildSystemPrompt(room);
+
+        // 3. Sliding Window: 최근 10개 메시지
+        List<Message> recent = messageRepository.findTop10ByRoomIdOrderBySequenceNoDesc(roomId);
+        Collections.reverse(recent);
+
+        List<ChatMessage> history = recent.stream()
+                .map(m -> m.getSenderType() == Message.SenderType.USER
+                        ? ChatMessage.user(m.getContentText())
+                        : ChatMessage.assistant(m.getContentText()))
+                .toList();
+
+        // 4. GPT-4o 응답 생성
+        String aiContent = openAiService.chatWithHistory(systemPrompt, history, userText).getContent();
+
+        // 5. 메시지 저장
+        int nextSeq = messageRepository.findMaxSequenceNoByRoomId(roomId) + 1;
+        messageRepository.save(Message.builder()
+                .roomId(roomId)
+                .senderType(Message.SenderType.USER)
+                .contentText(userText)
+                .sequenceNo(nextSeq)
+                .build());
+
+        messageRepository.save(Message.builder()
+                .roomId(roomId)
+                .senderType(Message.SenderType.AI)
+                .contentText(aiContent)
+                .sequenceNo(nextSeq + 1)
+                .build());
+
+        // 6. Memory Bank 업데이트
+        room.updateMemoryBank(extractMemoryBank(room.getMemoryBank(), userText, aiContent));
+        room.updateLastActiveAt();
+
+        // 7. TTS: AI 텍스트 → 음성
+        byte[] audioData = openAiService.textToSpeech(aiContent, "alloy");
+
+        // 8. S3 업로드
+        String audioUrl = s3Service.uploadAudio(audioData, "voice/" + roomId);
+
+        return new VoiceResponse(aiContent, audioUrl);
     }
 
     private String buildSystemPrompt(Room room) {
