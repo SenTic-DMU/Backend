@@ -109,4 +109,17 @@ public class User extends BaseTimeEntity {
                 .emailVerified(false)
                 .build();
     }
+
+    public static User createSocialUser(String loginId, String email, String nickname, Provider provider, String providerId) {
+        return User.builder()
+                .loginId(loginId)
+                .email(email)
+                .nickname(nickname)
+                .provider(provider)
+                .providerId(providerId)
+                .role(Role.USER)
+                .status(Status.ACTIVE)
+                .emailVerified(false)
+                .build();
+    }
 }
