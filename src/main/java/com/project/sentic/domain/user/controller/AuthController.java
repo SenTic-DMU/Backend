@@ -95,4 +95,16 @@ public class AuthController {
         authService.resetPassword(request);
         return ApiResponse.success("비밀번호가 재설정되었습니다.");
     }
+
+    @Operation(summary = "카카오 소셜 로그인", description = "프론트에서 발급받은 카카오 accessToken으로 로그인/자동 회원가입합니다.")
+    @PostMapping("/kakao")
+    public ApiResponse<TokenResponseDto> kakaoLogin(@Valid @RequestBody SocialLoginRequest request) {
+        return ApiResponse.success(authService.kakaoLogin(request));
+    }
+
+    @Operation(summary = "구글 소셜 로그인", description = "프론트에서 발급받은 구글 accessToken으로 로그인/자동 회원가입합니다.")
+    @PostMapping("/google")
+    public ApiResponse<TokenResponseDto> googleLogin(@Valid @RequestBody SocialLoginRequest request) {
+        return ApiResponse.success(authService.googleLogin(request));
+    }
 }
