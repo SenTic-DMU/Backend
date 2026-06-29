@@ -75,6 +75,9 @@ public class SecurityConfig {
                         // AI 선행 검증용 (검증 완료 후 제거)
                         .requestMatchers("/api/ai/test/**").permitAll()
 
+                        // 누구나 접근 가능
+                        .requestMatchers("/api/faq/**").permitAll()
+
                         // 관리자만 접근 가능
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
