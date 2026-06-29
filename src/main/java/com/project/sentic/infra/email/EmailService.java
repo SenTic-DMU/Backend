@@ -1,4 +1,4 @@
-package com.project.sentic.global.infra.email;
+package com.project.sentic.infra.email;
 
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;

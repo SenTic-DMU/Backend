@@ -10,6 +10,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.project.sentic.domain.message.dto.VoiceResponse;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Message", description = "채팅 메시지 API")
 @RestController
@@ -29,6 +32,19 @@ public class MessageController {
             @RequestBody @Valid ChatRequest request,
             @AuthenticationPrincipal Long userId) {
         ChatResponse response = messageService.chat(userId, roomId, request.getContent());
+        return ApiResponse.success(response);
+    }
+
+    @Operation(
+            summary = "음성 대화",
+            description = "음성 파일을 업로드하면 STT → GPT → TTS → S3 저장 후 URL로 응답합니다."
+    )
+    @PostMapping(value = "/{roomId}/messages/voice", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<VoiceResponse> voice(
+            @PathVariable Long roomId,
+            @RequestParam("file") MultipartFile audioFile,
+            @AuthenticationPrincipal Long userId) {
+        VoiceResponse response = messageService.voice(userId, roomId, audioFile);
         return ApiResponse.success(response);
     }
 }
