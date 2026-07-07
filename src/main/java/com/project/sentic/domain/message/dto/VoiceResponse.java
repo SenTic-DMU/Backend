@@ -1,11 +1,13 @@
 package com.project.sentic.domain.message.dto;
 
+import com.project.sentic.domain.feedback.dto.FeedbackResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
 public class VoiceResponse {
-    private String aiText;    // AI 응답 텍스트
-    private String audioUrl;  // S3 업로드된 음성 URL
+    private String aiText;
+    private String audioUrl;
+    private FeedbackResponse feedback; // null이면 피드백 없음
 }
