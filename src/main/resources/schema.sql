@@ -13,18 +13,22 @@
 CREATE TABLE `users` (
     `user_id`           BIGINT          NOT NULL AUTO_INCREMENT,
     `email`             VARCHAR(100)    NULL,
-    `password_hash`     VARCHAR(255)    NULL,
+    `password`          VARCHAR(255)    NULL,
     `nickname`          VARCHAR(50)     NOT NULL,
-    `profile_image_url` VARCHAR(500)    NULL,
+    `profile_image`     VARCHAR(500)    NULL,
     `provider`          ENUM('LOCAL','KAKAO','GOOGLE') NOT NULL DEFAULT 'LOCAL',
     `provider_id`       VARCHAR(255)    NULL,
     `role`              ENUM('USER','ADMIN') NOT NULL DEFAULT 'USER',
-    `is_active`         BOOLEAN         NOT NULL DEFAULT TRUE,
-    `created_at`        DATETIME        NOT NULL DEFAULT NOW(),
-    `updated_at`        DATETIME        NOT NULL DEFAULT NOW() ON UPDATE NOW(),
+    `status`            ENUM('ACTIVE','INACTIVE','BANNED') NOT NULL DEFAULT 'ACTIVE',
+    `email_verified`    TINYINT(1)      NOT NULL DEFAULT 0,
+    `login_id`          VARCHAR(50)     NOT NULL,
+    `deleted_at`        DATETIME        NULL,
+    `created_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`user_id`),
     UNIQUE KEY `uq_email` (`email`),
-    UNIQUE KEY `uq_provider` (`provider`, `provider_id`)
+    UNIQUE KEY `uq_login_id` (`login_id`),
+    INDEX `idx_provider` (`provider`, `provider_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -33,11 +37,16 @@ CREATE TABLE `users` (
 CREATE TABLE `user_settings` (
     `setting_id`            BIGINT      NOT NULL AUTO_INCREMENT,
     `user_id`               BIGINT      NOT NULL,
-    `default_mode`          ENUM('VOICE','CHAT')                        NOT NULL DEFAULT 'CHAT',
-    `default_difficulty`    ENUM('BEGINNER','INTERMEDIATE','ADVANCED')  NOT NULL DEFAULT 'BEGINNER',
-    `subtitle_enabled`      BOOLEAN     NOT NULL DEFAULT TRUE,
-    `notification_enabled`  BOOLEAN     NOT NULL DEFAULT TRUE,
-    `updated_at`            DATETIME    NOT NULL DEFAULT NOW() ON UPDATE NOW(),
+    `default_mode`          ENUM('VOICE','CHAT') NOT NULL DEFAULT 'CHAT',
+    `default_difficulty`    ENUM('BEGINNER','INTERMEDIATE','ADVANCED') NOT NULL DEFAULT 'BEGINNER',
+    `subtitle_enabled`      TINYINT(1)  NOT NULL DEFAULT 1,
+    `notification_enabled`  TINYINT(1)  NOT NULL DEFAULT 1,
+    `weekly_study_time`     INT         NULL,
+    `daily_avg_time`        INT         NULL,
+    `streak_days`           INT         NULL,
+    `last_studied_at`       DATETIME    NULL,
+    `session_started_at`    DATETIME    NULL,
+    `updated_at`            DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`setting_id`),
     UNIQUE KEY `uq_user_settings` (`user_id`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
@@ -52,12 +61,11 @@ CREATE TABLE `subscription_plans` (
     `price`         INT             NOT NULL,
     `duration_days` INT             NOT NULL,
     `room_limit`    INT             NULL,
-    `is_active`     BOOLEAN         NOT NULL DEFAULT TRUE,
-    `created_at`    DATETIME        NOT NULL DEFAULT NOW(),
+    `is_active`     TINYINT(1)      NOT NULL DEFAULT 1,
+    `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`plan_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 기본 플랜 데이터
 INSERT INTO `subscription_plans` (`plan_name`, `price`, `duration_days`, `room_limit`)
 VALUES
     ('무료', 0, 36500, 3),
@@ -77,7 +85,7 @@ CREATE TABLE `payments` (
     `external_payment_id`   VARCHAR(200)    NULL,
     `paid_at`               DATETIME        NULL,
     `expires_at`            DATETIME        NULL,
-    `created_at`            DATETIME        NOT NULL DEFAULT NOW(),
+    `created_at`            DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`payment_id`),
     INDEX `idx_payments_user_status` (`user_id`, `status`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
@@ -90,16 +98,18 @@ CREATE TABLE `payments` (
 CREATE TABLE `rooms` (
     `room_id`           BIGINT          NOT NULL AUTO_INCREMENT,
     `user_id`           BIGINT          NOT NULL,
-    `room_type`         ENUM('VOICE','CHAT')                        NOT NULL,
+    `room_type`         ENUM('VOICE','CHAT') NOT NULL,
     `room_name`         VARCHAR(100)    NULL,
-    `character_name`    VARCHAR(50)     NULL,
+    `characters`        JSON            NULL,
+    `memory_bank`       JSON            NULL,
     `participant_count` INT             NULL DEFAULT 1,
     `situation`         TEXT            NULL,
-    `difficulty`        ENUM('BEGINNER','INTERMEDIATE','ADVANCED')  NOT NULL,
-    `is_random`         BOOLEAN         NOT NULL DEFAULT FALSE,
+    `difficulty`        ENUM('BEGINNER','INTERMEDIATE','ADVANCED') NOT NULL,
+    `is_random`         TINYINT(1)      NOT NULL DEFAULT 0,
     `last_active_at`    DATETIME        NULL,
-    `is_deleted`        BOOLEAN         NOT NULL DEFAULT FALSE,
-    `created_at`        DATETIME        NOT NULL DEFAULT NOW(),
+    `is_deleted`        TINYINT(1)      NOT NULL DEFAULT 0,
+    `created_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`room_id`),
     INDEX `idx_rooms_user_active` (`user_id`, `is_deleted`, `last_active_at`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
@@ -115,7 +125,7 @@ CREATE TABLE `messages` (
     `content_text`  TEXT            NULL,
     `audio_url`     VARCHAR(500)    NULL,
     `sequence_no`   INT             NOT NULL,
-    `created_at`    DATETIME        NOT NULL DEFAULT NOW(),
+    `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`message_id`),
     INDEX `idx_messages_room_seq` (`room_id`, `sequence_no`),
     FOREIGN KEY (`room_id`) REFERENCES `rooms`(`room_id`) ON DELETE CASCADE
@@ -125,22 +135,23 @@ CREATE TABLE `messages` (
 -- 7. 피드백
 -- --------------------------------------------------------
 CREATE TABLE `feedbacks` (
-    `feedback_id`           BIGINT  NOT NULL AUTO_INCREMENT,
-    `room_id`               BIGINT  NOT NULL,
-    `message_id`            BIGINT  NULL,
-    `grammar_errors`        JSON    NULL,
-    `natural_expressions`   JSON    NULL,
-    `slang_expressions`     JSON    NULL,
-    `overall_comment`       TEXT    NULL,
-    `created_at`            DATETIME NOT NULL DEFAULT NOW(),
+    `feedback_id`           BIGINT      NOT NULL AUTO_INCREMENT,
+    `room_id`               BIGINT      NOT NULL,
+    `message_id`            BIGINT      NULL,
+    `grammar_errors`        JSON        NULL,
+    `natural_expressions`   JSON        NULL,
+    `slang_expressions`     JSON        NULL,
+    `overall_comment`       TEXT        NULL,
+    `created_at`            DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`feedback_id`),
     INDEX `idx_feedbacks_room` (`room_id`),
+    INDEX `idx_feedbacks_message` (`message_id`),
     FOREIGN KEY (`room_id`) REFERENCES `rooms`(`room_id`) ON DELETE CASCADE,
     FOREIGN KEY (`message_id`) REFERENCES `messages`(`message_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
--- 8. 스크랩 표현
+-- 8. 스크랩
 -- --------------------------------------------------------
 CREATE TABLE `scraps` (
     `scrap_id`      BIGINT          NOT NULL AUTO_INCREMENT,
@@ -148,9 +159,9 @@ CREATE TABLE `scraps` (
     `feedback_id`   BIGINT          NULL,
     `expression`    VARCHAR(500)    NOT NULL,
     `context`       TEXT            NULL,
-    `category`      ENUM('단어','문법','문장') NULL,
+    `category`      ENUM('WORD','GRAMMAR','EXPRESSION') NULL,
     `user_note`     TEXT            NULL,
-    `created_at`    DATETIME        NOT NULL DEFAULT NOW(),
+    `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`scrap_id`),
     INDEX `idx_scraps_user_created` (`user_id`, `created_at`),
     INDEX `idx_scraps_user_category` (`user_id`, `category`),
@@ -159,18 +170,31 @@ CREATE TABLE `scraps` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
--- 9. 공지사항 (관리자)
+-- 9. 공지사항
 -- --------------------------------------------------------
 CREATE TABLE `announcements` (
     `announcement_id`   BIGINT          NOT NULL AUTO_INCREMENT,
     `admin_id`          BIGINT          NOT NULL,
     `title`             VARCHAR(200)    NOT NULL,
     `content`           TEXT            NOT NULL,
-    `is_pinned`         BOOLEAN         NOT NULL DEFAULT FALSE,
-    `is_deleted`        BOOLEAN         NOT NULL DEFAULT FALSE,
-    `created_at`        DATETIME        NOT NULL DEFAULT NOW(),
-    `updated_at`        DATETIME        NOT NULL DEFAULT NOW() ON UPDATE NOW(),
+    `is_pinned`         TINYINT(1)      NOT NULL DEFAULT 0,
+    `is_deleted`        TINYINT(1)      NOT NULL DEFAULT 0,
+    `created_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`announcement_id`),
     INDEX `idx_announcements_pinned` (`is_pinned`, `is_deleted`),
     FOREIGN KEY (`admin_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- 10. FAQ
+-- --------------------------------------------------------
+CREATE TABLE `faqs` (
+    `faq_id`        BIGINT          NOT NULL AUTO_INCREMENT,
+    `question`      VARCHAR(255)    NOT NULL,
+    `answer`        TEXT            NOT NULL,
+    `order_num`     INT             NOT NULL,
+    `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`faq_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
