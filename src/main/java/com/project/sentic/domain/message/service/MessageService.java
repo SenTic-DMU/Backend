@@ -3,6 +3,8 @@ package com.project.sentic.domain.message.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.sentic.domain.feedback.dto.FeedbackResponse;
+import com.project.sentic.domain.feedback.service.FeedbackService;
 import com.project.sentic.domain.message.dto.ChatResponse;
 import com.project.sentic.domain.message.entity.Message;
 import com.project.sentic.domain.message.repository.MessageRepository;
@@ -16,6 +18,7 @@ import com.project.sentic.infra.ai.dto.CharacterInfo;
 import com.project.sentic.infra.ai.dto.ChatMessage;
 import com.project.sentic.infra.s3.S3Service;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.project.sentic.domain.message.dto.VoiceResponse;
@@ -24,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -35,6 +39,7 @@ public class MessageService {
     private final PromptBuilder promptBuilder;
     private final ObjectMapper objectMapper;
     private final S3Service s3Service;
+    private final FeedbackService feedbackService;
 
     @Transactional
     public ChatResponse chat(Long userId, Long roomId, String content) {
@@ -47,7 +52,6 @@ public class MessageService {
 
         String systemPrompt = buildSystemPrompt(room);
 
-        // Sliding Window: 최근 10개 메시지를 시간순으로 정렬
         List<Message> recent = messageRepository.findTop10ByRoomIdOrderBySequenceNoDesc(roomId);
         Collections.reverse(recent);
 
@@ -60,7 +64,9 @@ public class MessageService {
         String aiContent = openAiService.chatWithHistory(systemPrompt, history, content).getContent();
 
         int nextSeq = messageRepository.findMaxSequenceNoByRoomId(roomId) + 1;
-        messageRepository.save(Message.builder()
+
+        // 유저 메시지 저장
+        Message userMessage = messageRepository.save(Message.builder()
                 .roomId(roomId)
                 .senderType(Message.SenderType.USER)
                 .contentText(content)
@@ -77,7 +83,20 @@ public class MessageService {
         room.updateMemoryBank(extractMemoryBank(room.getMemoryBank(), content, aiContent));
         room.updateLastActiveAt();
 
-        return new ChatResponse(aiContent);
+        // 피드백 생성 (실패해도 대화는 정상 진행)
+        FeedbackResponse feedback = null;
+        try {
+            feedback = feedbackService.generateFeedback(
+                    roomId,
+                    userMessage.getId(),
+                    content,
+                    room.getDifficulty().name()
+            );
+        } catch (Exception e) {
+            log.warn("[Feedback] 피드백 생성 실패: {}", e.getMessage());
+        }
+
+        return new ChatResponse(aiContent, feedback);
     }
 
     @Transactional
@@ -108,9 +127,9 @@ public class MessageService {
         // 4. GPT-4o 응답 생성
         String aiContent = openAiService.chatWithHistory(systemPrompt, history, userText).getContent();
 
-        // 5. 메시지 저장
+        // 5. 유저 메시지 저장
         int nextSeq = messageRepository.findMaxSequenceNoByRoomId(roomId) + 1;
-        messageRepository.save(Message.builder()
+        Message userMessage = messageRepository.save(Message.builder()
                 .roomId(roomId)
                 .senderType(Message.SenderType.USER)
                 .contentText(userText)
@@ -134,7 +153,20 @@ public class MessageService {
         // 8. S3 업로드
         String audioUrl = s3Service.uploadAudio(audioData, "voice/" + roomId);
 
-        return new VoiceResponse(aiContent, audioUrl);
+        // 9. 피드백 생성 (실패해도 대화는 정상 진행)
+        FeedbackResponse feedback = null;
+        try {
+            feedback = feedbackService.generateFeedback(
+                    roomId,
+                    userMessage.getId(),
+                    userText,
+                    room.getDifficulty().name()
+            );
+        } catch (Exception e) {
+            log.warn("[Feedback] 피드백 생성 실패: {}", e.getMessage());
+        }
+
+        return new VoiceResponse(aiContent, audioUrl, feedback);
     }
 
     private String buildSystemPrompt(Room room) {
