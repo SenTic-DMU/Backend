@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import com.project.sentic.domain.message.dto.VoiceResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
+import com.project.sentic.domain.message.dto.MessageResponse;
+
+import java.util.List;
 
 @Tag(name = "Message", description = "채팅 메시지 API")
 @RestController
@@ -46,5 +49,13 @@ public class MessageController {
             @AuthenticationPrincipal Long userId) {
         VoiceResponse response = messageService.voice(userId, roomId, audioFile);
         return ApiResponse.success(response);
+    }
+
+    @Operation(summary = "대화 기록 조회")
+    @GetMapping("/{roomId}/messages")
+    public ApiResponse<List<MessageResponse>> getMessages(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal Long userId) {
+        return ApiResponse.success(messageService.getMessages(userId, roomId));
     }
 }
