@@ -13,4 +13,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     @Query("SELECT COALESCE(MAX(m.sequenceNo), 0) FROM Message m WHERE m.roomId = :roomId")
     int findMaxSequenceNoByRoomId(@Param("roomId") Long roomId);
+
+    // 대화 기록 조회 (시간순 정렬)
+    List<Message> findByRoomIdOrderBySequenceNoAsc(Long roomId);
 }

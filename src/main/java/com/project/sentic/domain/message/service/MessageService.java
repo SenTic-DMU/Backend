@@ -23,9 +23,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.project.sentic.domain.message.dto.VoiceResponse;
 import org.springframework.web.multipart.MultipartFile;
+import com.project.sentic.domain.message.dto.MessageResponse;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -219,5 +221,20 @@ public class MessageService {
         } catch (JsonProcessingException e) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
+    }
+
+    // 대화 기록 조회
+    public List<MessageResponse> getMessages(Long userId, Long roomId) {
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
+
+        if (!room.getUserId().equals(userId)) {
+            throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
+        }
+
+        return messageRepository.findByRoomIdOrderBySequenceNoAsc(roomId)
+                .stream()
+                .map(MessageResponse::from)
+                .collect(Collectors.toList());
     }
 }
