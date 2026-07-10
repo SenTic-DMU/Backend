@@ -42,7 +42,7 @@ com.project.sentic
 ├── email       # Gmail SMTP 연동
 ├── kakao       # 카카오 사용자 정보 API
 ├── google      # 구글 사용자 정보 API
-└── s3 
+└── s3
 
 ## 브랜치 전략
 main
@@ -193,8 +193,7 @@ client-id: {구글클라이언트ID}
 - 카카오 / 구글 소셜 로그인 API ✅
 - 마이페이지 API ✅
 - OpenAI GPT-4o 채팅 API ✅ (PromptBuilder, Memory Bank, Sliding Window)
-- 채팅 피드백 생성 API
-- 스크랩 API
+- 스크랩 API ✅
 - 결제 API (토스페이먼츠)
 - 관리자 회원 관리 API
 
@@ -207,8 +206,7 @@ client-id: {구글클라이언트ID}
 - 음성 대화 API ✅
 - UserSettings API ✅
 - FAQ API ✅
-- 대화 기록 조회 API
-- 음성 피드백 생성 API
-- 스크랩 API
+- 대화 기록 조회 API ✅
+- 피드백 API (채팅/음성 통합) ✅
 - AWS S3 파일 저장
 - 공지사항 CRUD API
