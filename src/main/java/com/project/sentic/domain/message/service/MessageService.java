@@ -237,4 +237,72 @@ public class MessageService {
                 .map(MessageResponse::from)
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public VoiceResponse enterRoom(Long userId, Long roomId) {
+        Room room = roomRepository.findByIdAndDeletedFalse(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
+
+        if (!room.getUserId().equals(userId)) {
+            throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
+        }
+
+        String systemPrompt = buildSystemPrompt(room);
+
+        // 최근 메시지 확인
+        List<Message> recent = messageRepository.findTop10ByRoomIdOrderBySequenceNoDesc(roomId);
+
+        String aiContent;
+
+        if (recent.isEmpty()) {
+            // Case 1: 첫 대화 → AI 인사말 생성
+            aiContent = openAiService.chatWithHistory(
+                    systemPrompt,
+                    List.of(),
+                    "Start the conversation. Greet the user naturally according to the situation."
+            ).getContent();
+        } else {
+            Message lastMessage = recent.get(0); // 가장 최신 메시지
+
+            if (lastMessage.getSenderType() == Message.SenderType.AI) {
+                // Case 2: 마지막이 AI → 마지막 메시지 재사용
+                aiContent = lastMessage.getContentText();
+            } else {
+                // Case 3: 마지막이 USER → AI가 응답 생성
+                Collections.reverse(recent);
+                List<ChatMessage> history = recent.stream()
+                        .map(m -> m.getSenderType() == Message.SenderType.USER
+                                ? ChatMessage.user(m.getContentText())
+                                : ChatMessage.assistant(m.getContentText()))
+                        .toList();
+
+                aiContent = openAiService.chatWithHistory(
+                        systemPrompt,
+                        history,
+                        "Continue the conversation naturally."
+                ).getContent();
+            }
+        }
+
+        // Case 1, 3인 경우에만 AI 메시지 저장
+        if (recent.isEmpty() || recent.get(0).getSenderType() == Message.SenderType.USER) {
+            int nextSeq = messageRepository.findMaxSequenceNoByRoomId(roomId) + 1;
+            messageRepository.save(Message.builder()
+                    .roomId(roomId)
+                    .senderType(Message.SenderType.AI)
+                    .contentText(aiContent)
+                    .sequenceNo(nextSeq)
+                    .build());
+        }
+
+        room.updateLastActiveAt();
+
+        // TTS: AI 텍스트 → 음성
+        byte[] audioData = openAiService.textToSpeech(aiContent, "alloy");
+
+        // S3 업로드
+        String audioUrl = s3Service.uploadAudio(audioData, "voice/" + roomId);
+
+        return new VoiceResponse(aiContent, audioUrl, null);
+    }
 }

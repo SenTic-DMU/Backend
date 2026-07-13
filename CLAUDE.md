@@ -206,7 +206,14 @@ client-id: {구글클라이언트ID}
 - 음성 대화 API ✅
 - UserSettings API ✅
 - FAQ API ✅
+<<<<<<< Updated upstream
 - 대화 기록 조회 API ✅
 - 피드백 API (채팅/음성 통합) ✅
 - AWS S3 파일 저장
+=======
+- 대화 기록 조회 API
+- 음성 피드백 생성 API
+- 스크랩 API
+- AWS S3 파일 저장 
+>>>>>>> Stashed changes
 - 공지사항 CRUD API
