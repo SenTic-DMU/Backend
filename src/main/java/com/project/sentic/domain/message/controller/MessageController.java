@@ -58,4 +58,15 @@ public class MessageController {
             @AuthenticationPrincipal Long userId) {
         return ApiResponse.success(messageService.getMessages(userId, roomId));
     }
+
+    @Operation(
+            summary = "방 입장",
+            description = "방 입장 시 AI가 먼저 말합니다. 첫 대화면 인사, 마지막이 AI면 재생, 마지막이 USER면 응답 생성."
+    )
+    @PostMapping("/{roomId}/enter")
+    public ApiResponse<VoiceResponse> enterRoom(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal Long userId) {
+        return ApiResponse.success(messageService.enterRoom(userId, roomId));
+    }
 }
