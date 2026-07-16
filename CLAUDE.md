@@ -157,7 +157,7 @@ spring:
 datasource:
 url: jdbc:mysql://localhost:3306/sentic?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
 username: root
-password: {MySQL비밀번호}
+password: {MySQL비밀번호}0
 mail:
 host: smtp.gmail.com
 port: 587
@@ -194,8 +194,7 @@ client-id: {구글클라이언트ID}
 - 마이페이지 API ✅
 - OpenAI GPT-4o 채팅 API ✅ (PromptBuilder, Memory Bank, Sliding Window)
 - 스크랩 API ✅
-- 결제 API (토스페이먼츠)
-- 관리자 회원 관리 API
+- 결제 API (토스페이먼츠)git add ✅
 
 ### 김민석
 - User 엔티티 + Repository ✅
@@ -206,14 +205,7 @@ client-id: {구글클라이언트ID}
 - 음성 대화 API ✅
 - UserSettings API ✅
 - FAQ API ✅
-<<<<<<< Updated upstream
 - 대화 기록 조회 API ✅
 - 피드백 API (채팅/음성 통합) ✅
-- AWS S3 파일 저장
-=======
-- 대화 기록 조회 API
-- 음성 피드백 생성 API
-- 스크랩 API
-- AWS S3 파일 저장 
->>>>>>> Stashed changes
-- 공지사항 CRUD API
+- AWS S3 파일 저장 ✅
+- 공지사항 CRUD API ✅

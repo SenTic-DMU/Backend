@@ -49,7 +49,12 @@ public enum ErrorCode {
 
     // 관리자
     ADMIN_ONLY(HttpStatus.FORBIDDEN, "관리자만 접근할 수 있습니다."),
-    ANNOUNCEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다.");
+    ANNOUNCEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다."),
+
+    // 결제
+    PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 구독 플랜입니다."),
+    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 플랜 금액과 일치하지 않습니다."),
+    PAYMENT_FAILED(HttpStatus.BAD_GATEWAY, "결제 승인에 실패했습니다.");
 
     private final HttpStatus status;
     private final String message;
