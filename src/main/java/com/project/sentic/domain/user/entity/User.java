@@ -85,6 +85,10 @@ public class User extends BaseTimeEntity {
         this.password = encodedPassword;
     }
 
+    public void updateStatus(Status status) {
+        this.status = status;
+    }
+
     public void verifyEmail() {
         this.emailVerified = true;
     }
@@ -93,7 +97,6 @@ public class User extends BaseTimeEntity {
         this.status = Status.INACTIVE;
         this.deletedAt = LocalDateTime.now();
     }
-
 
     // ── 정적 생성 메서드 ──────────────────────────────────
 
