@@ -33,4 +33,13 @@ public class Faq {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void update(String question, String answer) {
+        this.question = question;
+        this.answer = answer;
+    }
+
+    public void updateOrderNum(int orderNum) {
+        this.orderNum = orderNum;
+    }
 }
