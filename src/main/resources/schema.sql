@@ -68,9 +68,9 @@ CREATE TABLE `subscription_plans` (
 
 INSERT INTO `subscription_plans` (`plan_name`, `price`, `duration_days`, `room_limit`)
 VALUES
-    ('무료', 0, 36500, 3),
-    ('기본', 4900, 30, 20),
-    ('프리미엄', 9900, 30, NULL);
+    ('Free', 0, 36500, 3),
+    ('Monthly', 14900, 30, NULL),
+    ('Yearly', 149000, 365, NULL);
 
 -- --------------------------------------------------------
 -- 4. 결제 정보
