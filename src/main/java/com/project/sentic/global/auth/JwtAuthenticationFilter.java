@@ -40,6 +40,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        log.info(
+                "[REQUEST] {} {} | Content-Type={} | Encoding={} | User-Agent={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getContentType(),
+                request.getCharacterEncoding(),
+                request.getHeader("User-Agent")
+        );
+
         // 헤더에서 토큰 추출
         String token = resolveToken(request);
 
@@ -61,6 +70,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+
+        log.info(
+                "[RESPONSE] {} {} | Status={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                response.getStatus()
+        );
     }
 
     /**
