@@ -7,7 +7,8 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class VoiceResponse {
+    private String userText;
     private String aiText;
     private String audioUrl;
-    private FeedbackResponse feedback; // null이면 피드백 없음
+    private FeedbackResponse feedback;
 }

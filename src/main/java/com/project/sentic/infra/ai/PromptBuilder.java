@@ -34,11 +34,23 @@ public class PromptBuilder {
         CharacterInfo ch = ctx.characters().get(0);
 
         sb.append("You are ").append(ch.name())
-          .append(", playing a role in the following scenario.\n\n");
+                .append(", playing a role in the following scenario.\n\n");
 
         sb.append("## CHARACTER\n");
         sb.append("Name: ").append(ch.name()).append("\n");
         sb.append("Personality / Role: ").append(ch.personality()).append("\n\n");
+
+        if (ch.personality() != null && !ch.personality().isBlank()) {
+            sb.append("## PERSONALITY EXPRESSION RULES\n");
+            sb.append("- You MUST express your personality through word choice, tone, and attitude in EVERY response.\n");
+            sb.append("- If you are grumpy, use short blunt sentences and show annoyance.\n");
+            sb.append("- If you are cheerful, use exclamation marks and enthusiastic language.\n");
+            sb.append("- If you are sarcastic, use dry humor and witty remarks.\n");
+            sb.append("- If you are shy, use hesitant language like 'um...', 'well...', 'I guess...'.\n");
+            sb.append("- If you are angry, use CAPS for emphasis and show frustration.\n");
+            sb.append("- If you are sad, use '...' frequently and show melancholy.\n");
+            sb.append("- Your personality must be obvious to the user from the very first message.\n\n");
+        }
 
         appendSituation(sb, ctx);
         appendMemoryBank(sb, ctx.memoryBank());
@@ -49,8 +61,9 @@ public class PromptBuilder {
         sb.append("2. Never reveal that you are an AI or a language model.\n");
         sb.append("3. Respond ONLY in English.\n");
         sb.append("4. If the user speaks Korean or tries to leave the scenario, ")
-          .append("respond in English and gently steer back.\n");
-        sb.append("5. Keep all responses relevant to the current situation.");
+                .append("respond in English and gently steer back.\n");
+        sb.append("5. Keep all responses relevant to the current situation.\n");
+        sb.append("6. Your personality must be consistent and obvious in every response.");
     }
 
     // ── 멀티 캐릭터 (최대 2명) ──────────────────────────────────
@@ -66,18 +79,28 @@ public class PromptBuilder {
         sb.append("1. ").append(ch1.name()).append(" — ").append(ch1.personality()).append("\n");
         sb.append("2. ").append(ch2.name()).append(" — ").append(ch2.personality()).append("\n\n");
 
+        sb.append("## PERSONALITY EXPRESSION RULES\n");
+        sb.append("- Each character MUST have a completely distinct speaking style.\n");
+        sb.append("- Characters should sound totally different from each other.\n");
+        sb.append("- Express personality through word choice, tone, and attitude in EVERY response.\n");
+        sb.append("- If a character is grumpy, they use short blunt sentences and show annoyance.\n");
+        sb.append("- If a character is cheerful, they use exclamation marks and enthusiastic language.\n");
+        sb.append("- If a character is shy, they use hesitant language like 'um...', 'well...'.\n");
+        sb.append("- Personality must be obvious and consistent in every single response.\n\n");
+
         appendSituation(sb, ctx);
         appendMemoryBank(sb, ctx.memoryBank());
         appendDifficulty(sb, ctx.difficulty());
 
         sb.append("\n## RULES — NEVER violate these\n");
         sb.append("1. EVERY line MUST begin with [").append(ch1.name())
-          .append("]: or [").append(ch2.name()).append("]:.\n");
+                .append("]: or [").append(ch2.name()).append("]:.\n");
         sb.append("2. Both characters must always stay true to their personalities.\n");
         sb.append("3. Never reveal that you are an AI or a language model.\n");
         sb.append("4. Respond ONLY in English.\n");
         sb.append("5. If the user speaks Korean or tries to leave the scenario, ")
-          .append("respond in character and redirect to the situation.");
+                .append("respond in character and redirect to the situation.\n");
+        sb.append("6. Each character's personality must be obvious and distinct in every response.");
     }
 
     // ── 공통 섹션 ──────────────────────────────────────────────

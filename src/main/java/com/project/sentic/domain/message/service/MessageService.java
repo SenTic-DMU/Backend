@@ -24,10 +24,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.project.sentic.domain.message.dto.VoiceResponse;
 import org.springframework.web.multipart.MultipartFile;
 import com.project.sentic.domain.message.dto.MessageResponse;
+import com.project.sentic.domain.feedback.entity.Feedback;
+import com.project.sentic.domain.feedback.repository.FeedbackRepository;
+import com.project.sentic.infra.ai.VoiceMapper;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -42,6 +46,7 @@ public class MessageService {
     private final ObjectMapper objectMapper;
     private final S3Service s3Service;
     private final FeedbackService feedbackService;
+    private final FeedbackRepository feedbackRepository;
 
     @Transactional
     public ChatResponse chat(Long userId, Long roomId, String content) {
@@ -150,7 +155,12 @@ public class MessageService {
         room.updateLastActiveAt();
 
         // 7. TTS: AI 텍스트 → 음성
-        byte[] audioData = openAiService.textToSpeech(aiContent, "alloy");
+        // 캐릭터 성격에 맞는 목소리 선택
+        List<CharacterInfo> characters = parseCharacters(room.getCharacters());
+        String voice = VoiceMapper.mapVoice(
+                characters.isEmpty() ? null : characters.get(0).personality()
+        );
+        byte[] audioData = openAiService.textToSpeech(aiContent, voice);
 
         // 8. S3 업로드
         String audioUrl = s3Service.uploadAudio(audioData, "voice/" + roomId);
@@ -168,7 +178,7 @@ public class MessageService {
             log.warn("[Feedback] 피드백 생성 실패: {}", e.getMessage());
         }
 
-        return new VoiceResponse(aiContent, audioUrl, feedback);
+        return new VoiceResponse(userText, aiContent, audioUrl, feedback);
     }
 
     private String buildSystemPrompt(Room room) {
@@ -232,9 +242,24 @@ public class MessageService {
             throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
         }
 
-        return messageRepository.findByRoomIdOrderBySequenceNoAsc(roomId)
+        List<Message> messages = messageRepository.findByRoomIdOrderBySequenceNoAsc(roomId);
+
+        // 메시지 ID 목록으로 피드백 한번에 조회
+        List<Long> messageIds = messages.stream()
+                .map(Message::getId)
+                .collect(Collectors.toList());
+
+        Map<Long, FeedbackResponse> feedbackMap = feedbackRepository
+                .findByMessageIdIn(messageIds)
                 .stream()
-                .map(MessageResponse::from)
+                .collect(Collectors.toMap(
+                        Feedback::getMessageId,
+                        FeedbackResponse::from,
+                        (a, b) -> a
+                ));
+
+        return messages.stream()
+                .map(m -> MessageResponse.of(m, feedbackMap.get(m.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -298,11 +323,15 @@ public class MessageService {
         room.updateLastActiveAt();
 
         // TTS: AI 텍스트 → 음성
-        byte[] audioData = openAiService.textToSpeech(aiContent, "alloy");
+        List<CharacterInfo> characters = parseCharacters(room.getCharacters());
+        String voice = VoiceMapper.mapVoice(
+                characters.isEmpty() ? null : characters.get(0).personality()
+        );
+        byte[] audioData = openAiService.textToSpeech(aiContent, voice);
 
         // S3 업로드
         String audioUrl = s3Service.uploadAudio(audioData, "voice/" + roomId);
 
-        return new VoiceResponse(aiContent, audioUrl, null);
+        return new VoiceResponse(null, aiContent, audioUrl, null);
     }
 }

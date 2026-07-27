@@ -95,25 +95,26 @@ public class FeedbackService {
         };
 
         return """
-                Analyze the following English sentence and provide feedback.
-                
-                Difficulty level: %s
-                Level guideline: %s
-                
-                User message: "%s"
-                
-                Rules:
-                1. If the sentence has NO errors worth correcting at this level, return exactly: null
-                2. If feedback is needed, return JSON in this exact format:
-                {
-                  "wordErrors": [{"original": "...", "corrected": "...", "explanation": "...", "startIndex": 0, "endIndex": 0}],
-                  "grammarErrors": [{"original": "...", "corrected": "...", "explanation": "...", "startIndex": 0, "endIndex": 0}],
-                  "expressionErrors": [{"original": "...", "suggested": "...", "explanation": "...", "startIndex": 0, "endIndex": 0}],
-                  "perfectSentence": "..."
-                }
-                3. Empty arrays [] if no errors in that category.
-                4. Return JSON only. No markdown, no explanation.
-                """.formatted(difficulty, levelGuide, userMessage);
+            Analyze the following English sentence and provide feedback.
+            
+            Difficulty level: %s
+            Level guideline: %s
+            
+            User message: "%s"
+            
+            Rules:
+            1. If the sentence has NO errors worth correcting at this level, return exactly: null
+            2. If feedback is needed, return JSON in this exact format:
+            {
+              "wordErrors": [{"original": "...", "corrected": "...", "explanation": "...", "startIndex": 0, "endIndex": 0}],
+              "grammarErrors": [{"original": "...", "corrected": "...", "explanation": "...", "startIndex": 0, "endIndex": 0}],
+              "expressionErrors": [{"original": "...", "suggested": "...", "explanation": "...", "startIndex": 0, "endIndex": 0}],
+              "perfectSentence": "..."
+            }
+            3. Empty arrays [] if no errors in that category.
+            4. Return JSON only. No markdown, no explanation.
+            5. All "explanation" values MUST be written in natural, polite Korean so that a Korean user can easily understand them.
+            """.formatted(difficulty, levelGuide, userMessage);
     }
 
     // GPT 응답 JSON 파싱
