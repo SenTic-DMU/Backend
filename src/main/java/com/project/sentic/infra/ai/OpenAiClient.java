@@ -86,6 +86,7 @@ public class OpenAiClient {
                 file.getContentType() != null ? file.getContentType() : "audio/mpeg"
         ));
         bodyBuilder.part("model", sttModel);
+        bodyBuilder.part("language", "en");
 
         SttResponse response = webClient.post()
                 .uri("/audio/transcriptions")

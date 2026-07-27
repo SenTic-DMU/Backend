@@ -12,4 +12,7 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
 
     // 메시지별 피드백 조회
     List<Feedback> findByMessageId(Long messageId);
+
+    // 메시지 ID 목록으로 피드백 조회
+    List<Feedback> findByMessageIdIn(List<Long> messageIds);
 }
