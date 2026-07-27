@@ -8,6 +8,7 @@ import com.project.sentic.domain.room.entity.Room;
 import com.project.sentic.domain.room.repository.RoomRepository;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
+import com.project.sentic.global.filter.ContentFilterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +23,12 @@ public class RoomService {
 
     private final RoomRepository roomRepository;
     private final ObjectMapper objectMapper;
+    private final ContentFilterService contentFilterService;
 
     @Transactional
     public RoomResponse createRoom(Long userId, RoomCreateRequest request) {
+        contentFilterService.check(request.getSituation());
+
         String charactersJson = serializeCharacters(request.getCharacters());
 
         Room room = Room.builder()

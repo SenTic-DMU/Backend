@@ -273,4 +273,8 @@ public class AuthService {
         return new TokenResponseDto(accessToken, refreshToken);
     }
 
+    public boolean isLoginIdAvailable(String loginId) {
+        return !userRepository.existsByLoginId(loginId);
+    }
+
 }
