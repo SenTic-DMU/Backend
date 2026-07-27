@@ -12,6 +12,7 @@ import com.project.sentic.domain.room.entity.Room;
 import com.project.sentic.domain.room.repository.RoomRepository;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
+import com.project.sentic.global.filter.ContentFilterService;
 import com.project.sentic.infra.ai.OpenAiService;
 import com.project.sentic.infra.ai.PromptBuilder;
 import com.project.sentic.infra.ai.dto.CharacterInfo;
@@ -47,9 +48,12 @@ public class MessageService {
     private final S3Service s3Service;
     private final FeedbackService feedbackService;
     private final FeedbackRepository feedbackRepository;
+    private final ContentFilterService contentFilterService;
 
     @Transactional
     public ChatResponse chat(Long userId, Long roomId, String content) {
+        contentFilterService.check(content);
+
         Room room = roomRepository.findByIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
 
@@ -117,6 +121,7 @@ public class MessageService {
 
         // 1. STT: 음성 → 텍스트
         String userText = openAiService.transcribe(audioFile);
+        contentFilterService.check(userText);
 
         // 2. 시스템 프롬프트 빌드
         String systemPrompt = buildSystemPrompt(room);
