@@ -25,6 +25,7 @@ public class ScrapService {
         Scrap scrap = Scrap.builder()
                 .userId(userId)
                 .feedbackId(request.getFeedbackId())
+                .roomId(request.getRoomId())        // ← 추가
                 .expression(request.getExpression())
                 .context(request.getContext())
                 .category(request.getCategory())
