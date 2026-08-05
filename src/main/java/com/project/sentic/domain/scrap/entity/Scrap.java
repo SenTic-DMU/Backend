@@ -27,6 +27,9 @@ public class Scrap {
     @Column(name = "feedback_id")
     private Long feedbackId;
 
+    @Column(name = "room_id")      // ← 추가
+    private Long roomId;           // ← 추가
+
     @Column(nullable = false, length = 500)
     private String expression;
 
@@ -40,7 +43,6 @@ public class Scrap {
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
 
     public enum ScrapCategory {
         WORD, GRAMMAR, EXPRESSION
