@@ -1,9 +1,6 @@
 package com.project.sentic.domain.user.controller;
 
-import com.project.sentic.domain.user.dto.MyPageResponse;
-import com.project.sentic.domain.user.dto.UserSettingsResponse;
-import com.project.sentic.domain.user.dto.UserSettingsUpdateRequest;
-import com.project.sentic.domain.user.dto.WithdrawRequestDto;
+import com.project.sentic.domain.user.dto.*;
 import com.project.sentic.domain.user.service.UserService;
 import com.project.sentic.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +33,13 @@ public class UserController {
     public ApiResponse<MyPageResponse> getMyPage(
             @AuthenticationPrincipal Long userId) {
         return ApiResponse.success(userService.getMyPage(userId));
+    }
+
+    // 학습 통계 조회
+    @Operation(summary = "학습 통계 조회")
+    @GetMapping("/study-stats")
+    public ApiResponse<StudyStatsResponse> getStudyStats(@AuthenticationPrincipal Long userId) {
+        return ApiResponse.success(userService.getStudyStats(userId));
     }
 
     // 학습 레벨 변경
