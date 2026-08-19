@@ -1,9 +1,8 @@
 package com.project.sentic.domain.user.service;
 
-import com.project.sentic.domain.user.dto.MyPageResponse;
-import com.project.sentic.domain.user.dto.UserSettingsResponse;
-import com.project.sentic.domain.user.dto.UserSettingsUpdateRequest;
-import com.project.sentic.domain.user.dto.WithdrawRequestDto;
+import com.project.sentic.domain.message.entity.Message;
+import com.project.sentic.domain.message.repository.MessageRepository;
+import com.project.sentic.domain.user.dto.*;
 import com.project.sentic.domain.user.entity.User;
 import com.project.sentic.domain.user.entity.UserSettings;
 import com.project.sentic.domain.user.repository.UserRepository;
@@ -14,6 +13,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -53,6 +60,74 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         return MyPageResponse.of(user, settings);
+    }
+
+    // 학습 통계 조회
+    public StudyStatsResponse getStudyStats(Long userId) {
+        LocalDate today = LocalDate.now();
+        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
+
+        // 최근 7일 메시지 조회
+        List<Message> recentMessages = messageRepository
+                .findByRoomUserIdAndCreatedAtAfter(userId, weekStart.atStartOfDay());
+
+        // 요일별 학습 시간 계산 (메시지 1개당 1분으로 계산)
+        Map<DayOfWeek, Integer> minutesByDay = new LinkedHashMap<>();
+        for (DayOfWeek day : DayOfWeek.values()) {
+            minutesByDay.put(day, 0);
+        }
+
+        for (Message message : recentMessages) {
+            if (message.getSenderType() == Message.SenderType.USER) {
+                DayOfWeek day = message.getCreatedAt().getDayOfWeek();
+                minutesByDay.put(day, minutesByDay.get(day) + 1);
+            }
+        }
+
+        // weekly 리스트 생성
+        String[] dayNames = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+        DayOfWeek[] days = {DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY};
+
+        List<StudyStatsResponse.DailyStudy> weekly = new ArrayList<>();
+        int totalMinutes = 0;
+
+        for (int i = 0; i < 7; i++) {
+            int minutes = minutesByDay.get(days[i]);
+            totalMinutes += minutes;
+            weekly.add(StudyStatsResponse.DailyStudy.builder()
+                    .day(dayNames[i])
+                    .minute(minutes)
+                    .build());
+        }
+
+        int avgMinutes = totalMinutes > 0 ? totalMinutes / 7 : 0;
+
+        // 연속 학습일 계산
+        int continuousDays = calculateContinuousDays(userId, today);
+
+        return StudyStatsResponse.builder()
+                .totalMinutes(totalMinutes)
+                .avgMinutes(avgMinutes)
+                .continuousDays(continuousDays)
+                .weekly(weekly)
+                .build();
+    }
+
+    private int calculateContinuousDays(Long userId, LocalDate today) {
+        int days = 0;
+        LocalDate date = today;
+
+        while (true) {
+            LocalDateTime start = date.atStartOfDay();
+            LocalDateTime end = date.atTime(23, 59, 59);
+            boolean hasMessage = messageRepository
+                    .existsByRoomUserIdAndCreatedAtBetween(userId, start, end);
+            if (!hasMessage) break;
+            days++;
+            date = date.minusDays(1);
+        }
+        return days;
     }
 
     // 학습 레벨 변경
