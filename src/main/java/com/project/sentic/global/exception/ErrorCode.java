@@ -46,6 +46,7 @@ public enum ErrorCode {
     // 스크랩
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩을 찾을 수 없습니다."),
     SCRAP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 스크랩에 접근 권한이 없습니다."),
+    DUPLICATE_SCRAP(HttpStatus.CONFLICT, "이미 스크랩된 표현입니다."),
 
     // 관리자
     ADMIN_ONLY(HttpStatus.FORBIDDEN, "관리자만 접근할 수 있습니다."),
