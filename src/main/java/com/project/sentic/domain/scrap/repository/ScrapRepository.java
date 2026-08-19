@@ -25,4 +25,6 @@ public interface ScrapRepository extends JpaRepository<Scrap, Long> {
             ORDER BY s.created_at DESC
             """, nativeQuery = true)
     List<Scrap> findByUserIdAndRoomId(@Param("userId") Long userId, @Param("roomId") Long roomId);
+
+    boolean existsByUserIdAndExpression(Long userId, String expression);
 }
