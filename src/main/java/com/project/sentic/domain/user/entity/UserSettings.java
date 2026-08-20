@@ -110,4 +110,9 @@ public class UserSettings {
         this.sessionStartedAt = null;
         this.updatedAt = now;
     }
+
+    @PrePersist
+    public void prePersist() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

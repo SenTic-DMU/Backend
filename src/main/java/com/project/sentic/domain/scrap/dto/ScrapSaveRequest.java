@@ -10,6 +10,8 @@ public class ScrapSaveRequest {
 
     private Long feedbackId;
 
+    private Long roomId;        // ← 추가
+
     @NotBlank(message = "표현을 입력해주세요.")
     private String expression;
 

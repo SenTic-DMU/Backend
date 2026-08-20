@@ -157,6 +157,8 @@ CREATE TABLE `scraps` (
     `scrap_id`      BIGINT          NOT NULL AUTO_INCREMENT,
     `user_id`       BIGINT          NOT NULL,
     `feedback_id`   BIGINT          NULL,
+    `room_id` bigint NULL,
+    FOREIGN KEY (`room_id`) REFERENCES `rooms`(`room_id`) ON DELETE SET NULL,
     `expression`    VARCHAR(500)    NOT NULL,
     `context`       TEXT            NULL,
     `category`      ENUM('WORD','GRAMMAR','EXPRESSION') NULL,

@@ -123,17 +123,26 @@ public class PromptBuilder {
         sb.append(switch (level) {
             case "BEGINNER" ->
                     "- Use short, simple sentences (under 10 words when possible).\n" +
-                    "- Choose basic, everyday vocabulary only.\n" +
-                    "- Avoid idioms, slang, and complex grammar.\n" +
-                    "- Repeat key words to help the learner follow along.";
+                            "- Choose basic, everyday vocabulary only.\n" +
+                            "- Avoid idioms, slang, and complex grammar.\n" +
+                            "- Speak slowly and clearly. Do not rush.\n" +
+                            "- If you use a word the learner might not know, briefly explain it in parentheses.\n" +
+                            "  Example: 'I need a receipt (a paper that shows what you paid).'\n" +
+                            "- Repeat key words to help the learner follow along.";
             case "ADVANCED" ->
                     "- Use natural, fluent English including slang and idioms.\n" +
-                    "- Contractions, phrasal verbs, and colloquialisms are encouraged.\n" +
-                    "- Vary sentence structure freely and use complex grammar naturally.";
+                            "- Contractions, phrasal verbs, and colloquialisms are encouraged.\n" +
+                            "- Vary sentence structure freely and use complex grammar naturally.\n" +
+                            "- Speak at a fast, natural pace like a native speaker.\n" +
+                            "- Use longer, more complex sentences without simplifying.\n" +
+                            "- Challenge the user with diverse topics and nuanced expressions.";
             default ->
                     "- Use natural everyday conversational English.\n" +
-                    "- Mix simple and moderate vocabulary.\n" +
-                    "- Occasional common idioms are fine; avoid heavy slang.";
+                            "- Mix simple and moderate vocabulary.\n" +
+                            "- Occasional common idioms are fine; avoid heavy slang.\n" +
+                            "- Speak at a normal, comfortable pace.\n" +
+                            "- Encourage discussion on various everyday topics.\n" +
+                            "- Help the user learn common daily expressions naturally.";
         });
         sb.append("\n");
     }

@@ -12,6 +12,7 @@ public class ScrapResponse {
 
     private Long scrapId;
     private Long feedbackId;
+    private Long roomId;            // ← 추가
     private String expression;
     private String context;
     private Scrap.ScrapCategory category;
@@ -21,6 +22,7 @@ public class ScrapResponse {
         return ScrapResponse.builder()
                 .scrapId(scrap.getId())
                 .feedbackId(scrap.getFeedbackId())
+                .roomId(scrap.getRoomId())      // ← 추가
                 .expression(scrap.getExpression())
                 .context(scrap.getContext())
                 .category(scrap.getCategory())

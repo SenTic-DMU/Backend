@@ -46,6 +46,7 @@ public enum ErrorCode {
     // 스크랩
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "스크랩을 찾을 수 없습니다."),
     SCRAP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 스크랩에 접근 권한이 없습니다."),
+    DUPLICATE_SCRAP(HttpStatus.CONFLICT, "이미 스크랩된 표현입니다."),
 
     // 관리자
     ADMIN_ONLY(HttpStatus.FORBIDDEN, "관리자만 접근할 수 있습니다."),
@@ -54,7 +55,10 @@ public enum ErrorCode {
     // 결제
     PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 구독 플랜입니다."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 플랜 금액과 일치하지 않습니다."),
-    PAYMENT_FAILED(HttpStatus.BAD_GATEWAY, "결제 승인에 실패했습니다.");
+    PAYMENT_FAILED(HttpStatus.BAD_GATEWAY, "결제 승인에 실패했습니다."),
+
+    // 콘텐츠 필터
+    INAPPROPRIATE_CONTENT(HttpStatus.BAD_REQUEST, "부적절한 표현이 감지되었습니다.");
 
     private final HttpStatus status;
     private final String message;

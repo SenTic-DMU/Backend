@@ -15,9 +15,16 @@ public interface ScrapRepository extends JpaRepository<Scrap, Long> {
 
     @Query(value = """
             SELECT s.* FROM scraps s
-            INNER JOIN feedbacks f ON s.feedback_id = f.feedback_id
-            WHERE s.user_id = :userId AND f.room_id = :roomId
+            WHERE s.user_id = :userId 
+            AND (
+                s.room_id = :roomId
+                OR (s.feedback_id IS NOT NULL AND s.feedback_id IN (
+                    SELECT f.feedback_id FROM feedbacks f WHERE f.room_id = :roomId
+                ))
+            )
             ORDER BY s.created_at DESC
             """, nativeQuery = true)
     List<Scrap> findByUserIdAndRoomId(@Param("userId") Long userId, @Param("roomId") Long roomId);
+
+    boolean existsByUserIdAndExpression(Long userId, String expression);
 }

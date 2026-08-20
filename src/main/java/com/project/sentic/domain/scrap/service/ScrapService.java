@@ -22,9 +22,16 @@ public class ScrapService {
 
     @Transactional
     public ScrapResponse saveScrap(Long userId, ScrapSaveRequest request) {
+
+        // 중복 체크 추가
+        if (scrapRepository.existsByUserIdAndExpression(userId, request.getExpression())) {
+            throw new CustomException(ErrorCode.DUPLICATE_SCRAP);
+        }
+
         Scrap scrap = Scrap.builder()
                 .userId(userId)
                 .feedbackId(request.getFeedbackId())
+                .roomId(request.getRoomId())
                 .expression(request.getExpression())
                 .context(request.getContext())
                 .category(request.getCategory())

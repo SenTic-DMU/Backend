@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 /**
  * 인증 컨트롤러
@@ -107,4 +108,12 @@ public class AuthController {
     public ApiResponse<TokenResponseDto> googleLogin(@Valid @RequestBody SocialLoginRequest request) {
         return ApiResponse.success(authService.googleLogin(request));
     }
+
+    @Operation(summary = "아이디 중복확인")
+    @PostMapping("/check-loginid")
+    public ApiResponse<Boolean> checkLoginId(@RequestBody Map<String, String> request) {
+        String loginId = request.get("loginId");
+        return ApiResponse.success(authService.isLoginIdAvailable(loginId));
+    }
+
 }

@@ -12,6 +12,9 @@ import com.project.sentic.infra.google.GoogleClient;
 import com.project.sentic.infra.google.GoogleUserInfo;
 import com.project.sentic.infra.kakao.KakaoClient;
 import com.project.sentic.infra.kakao.KakaoUserInfo;
+import com.project.sentic.domain.user.entity.UserSettings;
+import com.project.sentic.domain.user.repository.UserSettingsRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,7 @@ public class AuthService {
     private final VerificationCodeStore verificationCodeStore;
     private final KakaoClient kakaoClient;
     private final GoogleClient googleClient;
+    private final UserSettingsRepository userSettingsRepository;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -61,9 +65,14 @@ public class AuthService {
                 passwordEncoder.encode(request.getPassword()),
                 request.getNickname()
         );
-        userRepository.save(user);
+        User saved = userRepository.save(user);
 
-        return generateToken(user);
+        // 유저 설정 자동 생성
+        userSettingsRepository.save(UserSettings.builder()
+                .userId(saved.getId())
+                .build());
+
+        return generateToken(saved);
     }
 
     /**
@@ -222,7 +231,14 @@ public class AuthService {
         String loginId = provider.name().toLowerCase() + "_" + providerId;
         String uniqueNickname = resolveNickname(nickname);
         User user = User.createSocialUser(loginId, email, uniqueNickname, provider, providerId);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+
+        // 유저 설정 자동 생성
+        userSettingsRepository.save(UserSettings.builder()
+                .userId(saved.getId())
+                .build());
+
+        return saved;
     }
 
     // 닉네임 중복 시 숫자 접미사 붙여 유니크하게 만들기
@@ -271,6 +287,10 @@ public class AuthService {
         );
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
         return new TokenResponseDto(accessToken, refreshToken);
+    }
+
+    public boolean isLoginIdAvailable(String loginId) {
+        return !userRepository.existsByLoginId(loginId);
     }
 
 }
