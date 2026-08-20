@@ -3,6 +3,8 @@ package com.project.sentic.domain.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -57,6 +59,34 @@ public class UserSettings {
     @Column(name = "session_started_at")
     private LocalDateTime sessionStartedAt;
 
+    @Column(name = "mon_minutes", nullable = false)
+    @Builder.Default
+    private int monMinutes = 0;
+
+    @Column(name = "tue_minutes", nullable = false)
+    @Builder.Default
+    private int tueMinutes = 0;
+
+    @Column(name = "wed_minutes", nullable = false)
+    @Builder.Default
+    private int wedMinutes = 0;
+
+    @Column(name = "thu_minutes", nullable = false)
+    @Builder.Default
+    private int thuMinutes = 0;
+
+    @Column(name = "fri_minutes", nullable = false)
+    @Builder.Default
+    private int friMinutes = 0;
+
+    @Column(name = "sat_minutes", nullable = false)
+    @Builder.Default
+    private int satMinutes = 0;
+
+    @Column(name = "sun_minutes", nullable = false)
+    @Builder.Default
+    private int sunMinutes = 0;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -94,8 +124,20 @@ public class UserSettings {
         if (sessionStartedAt == null) return;
 
         long minutes = java.time.Duration.between(sessionStartedAt, LocalDateTime.now()).toMinutes();
+        DayOfWeek today = LocalDate.now().getDayOfWeek();
 
-        // 이번 주 학습 시간 업데이트
+        // 요일별 학습 시간 누적
+        switch (today) {
+            case MONDAY    -> this.monMinutes += (int) minutes;
+            case TUESDAY   -> this.tueMinutes += (int) minutes;
+            case WEDNESDAY -> this.wedMinutes += (int) minutes;
+            case THURSDAY  -> this.thuMinutes += (int) minutes;
+            case FRIDAY    -> this.friMinutes += (int) minutes;
+            case SATURDAY  -> this.satMinutes += (int) minutes;
+            case SUNDAY    -> this.sunMinutes += (int) minutes;
+        }
+
+        // 이번 주 총 학습 시간 업데이트
         this.weeklyStudyTime += (int) minutes;
 
         // 연속 학습일 업데이트
