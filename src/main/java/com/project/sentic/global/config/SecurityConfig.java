@@ -67,6 +67,9 @@ public class SecurityConfig {
                 // API 접근 권한 설정
                 .authorizeHttpRequests(auth -> auth
 
+                        // OPTIONS 요청 허용 (CORS preflight)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // 누구나 접근 가능
                         .requestMatchers("/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()

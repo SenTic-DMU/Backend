@@ -129,9 +129,17 @@ public class AdminService {
     // FAQ 작성
     @Transactional
     public FaqResponse createFaq(AdminFaqRequest request) {
+        int nextOrder = faqRepository.findAllByOrderByOrderNumAsc()
+                .stream()
+                .mapToInt(Faq::getOrderNum)
+                .max()
+                .orElse(0) + 1;
+
         Faq faq = Faq.builder()
                 .question(request.getQuestion())
                 .answer(request.getAnswer())
+
+                .orderNum(nextOrder)
                 .build();
 
         return FaqResponse.from(faqRepository.save(faq));
