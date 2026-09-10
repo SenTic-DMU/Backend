@@ -17,6 +17,7 @@ public class RoomResponse {
     private Room.Difficulty difficulty;
     private LocalDateTime lastActiveAt;
     private LocalDateTime createdAt;
+    private LocalDateTime deletedAt;
 
     public static RoomResponse from(Room room) {
         return RoomResponse.builder()
@@ -27,6 +28,7 @@ public class RoomResponse {
                 .difficulty(room.getDifficulty())
                 .lastActiveAt(room.getLastActiveAt())
                 .createdAt(room.getCreatedAt())
+                .deletedAt(room.getDeletedAt())
                 .build();
     }
 }
