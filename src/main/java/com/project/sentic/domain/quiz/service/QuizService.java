@@ -7,6 +7,7 @@ import com.project.sentic.domain.message.repository.MessageRepository;
 import com.project.sentic.domain.quiz.dto.*;
 import com.project.sentic.domain.quiz.entity.QuizSession;
 import com.project.sentic.domain.quiz.repository.QuizSessionRepository;
+import com.project.sentic.domain.user.repository.UserSettingsRepository;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
 import com.project.sentic.infra.ai.OpenAiService;
@@ -29,6 +30,7 @@ public class QuizService {
     private final MessageRepository messageRepository;
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
+    private final UserSettingsRepository userSettingsRepository;
 
     // 퀴즈 문제 임시 저장 (quizId → 문제 목록)
     // 나가면 사라지는 일회성이라 DB 대신 메모리 사용
@@ -134,6 +136,12 @@ public class QuizService {
 
         // 점수 저장
         session.updateScore(score);
+
+        // 랭킹 점수 +1점 * 맞힌 개수
+        int finalScore = score;
+
+        userSettingsRepository.findByUserId(userId)
+                .ifPresent(settings -> settings.addQuizScore(finalScore));
 
         // 메모리에서 삭제
         quizCache.remove(quizId);

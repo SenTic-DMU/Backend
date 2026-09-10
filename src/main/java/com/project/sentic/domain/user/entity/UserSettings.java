@@ -90,6 +90,10 @@ public class UserSettings {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "weekly_score", nullable = false)
+    @Builder.Default
+    private int weeklyScore = 0;
+
 
     // ── Enum ──────────────────────────────────────
 
@@ -151,6 +155,21 @@ public class UserSettings {
         this.lastStudiedAt = now;
         this.sessionStartedAt = null;
         this.updatedAt = now;
+    }
+
+    // 대화 메시지 점수 추가 (+2점)
+    public void addMessageScore() {
+        this.weeklyScore += 2;
+    }
+
+    // 퀴즈 정답 점수 추가 (+1점 * 맞힌 개수)
+    public void addQuizScore(int correctCount) {
+        this.weeklyScore += correctCount;
+    }
+
+    // 주간 점수 초기화
+    public void resetWeeklyScore() {
+        this.weeklyScore = 0;
     }
 
     @PrePersist
