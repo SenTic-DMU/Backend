@@ -49,6 +49,9 @@ public class Room extends BaseTimeEntity {
     @Builder.Default
     private boolean deleted = false;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
 
     // ── Enum ──────────────────────────────────────
 
@@ -73,5 +76,11 @@ public class Room extends BaseTimeEntity {
 
     public void delete() {
         this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void restore() {
+        this.deleted = false;
+        this.deletedAt = null;
     }
 }

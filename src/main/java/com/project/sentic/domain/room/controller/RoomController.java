@@ -42,4 +42,28 @@ public class RoomController {
         roomService.deleteRoom(userId, roomId);
         return ApiResponse.success(null);
     }
+
+    // 휴지통 목록 조회
+    @GetMapping("/trash")
+    public ApiResponse<List<RoomResponse>> getTrash(
+            @AuthenticationPrincipal Long userId) {
+        return ApiResponse.success(roomService.getTrash(userId));
+    }
+
+    // 방 복원
+    @PostMapping("/{roomId}/restore")
+    public ApiResponse<RoomResponse> restoreRoom(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long roomId) {
+        return ApiResponse.success(roomService.restoreRoom(userId, roomId));
+    }
+
+    // 방 영구 삭제
+    @DeleteMapping("/{roomId}/permanent")
+    public ApiResponse<Void> permanentDeleteRoom(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long roomId) {
+        roomService.permanentDeleteRoom(userId, roomId);
+        return ApiResponse.success(null);
+    }
 }

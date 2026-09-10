@@ -63,6 +63,38 @@ public class RoomService {
         room.delete();
     }
 
+    public List<RoomResponse> getTrash(Long userId) {
+        return roomRepository.findByUserIdAndDeletedTrueOrderByDeletedAtDesc(userId)
+                .stream()
+                .map(RoomResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public RoomResponse restoreRoom(Long userId, Long roomId) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
+
+        if (!room.getUserId().equals(userId)) {
+            throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
+        }
+
+        room.restore();
+        return RoomResponse.from(room);
+    }
+
+    @Transactional
+    public void permanentDeleteRoom(Long userId, Long roomId) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
+
+        if (!room.getUserId().equals(userId)) {
+            throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
+        }
+
+        roomRepository.delete(room);
+    }
+
     private String serializeCharacters(List<RoomCreateRequest.CharacterRequest> characters) {
         if (characters == null || characters.isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_INPUT);
