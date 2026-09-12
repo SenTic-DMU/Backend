@@ -7,6 +7,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -50,6 +51,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(ApiResponse.fail("입력값을 확인해주세요."));
+    }
+
+    /**
+     * 존재하지 않는 경로 요청 시 404 반환
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleNoResourceFoundException(NoResourceFoundException e) {
+        log.warn("NoResourceFoundException: {}", e.getMessage());
+        return ResponseEntity
+                .status(404)
+                .body(ApiResponse.fail("요청한 경로를 찾을 수 없습니다."));
     }
 
     /**

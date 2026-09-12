@@ -24,4 +24,12 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     // 대화 기록 조회 (시간순 정렬)
     List<Message> findByRoomIdOrderBySequenceNoAsc(Long roomId);
+
+    // 사용자의 모든 방 ID 조회
+    @Query("SELECT DISTINCT m.roomId FROM Message m WHERE m.roomId IN " +
+            "(SELECT r.id FROM Room r WHERE r.userId = :userId AND r.deleted = false)")
+    List<Long> findDistinctRoomIdsByUserId(@Param("userId") Long userId);
+
+    // 여러 방의 메시지 조회
+    List<Message> findByRoomIdIn(List<Long> roomIds);
 }

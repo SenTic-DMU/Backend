@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @Tag(name = "User", description = "사용자 API")
 @RestController
@@ -66,6 +67,21 @@ public class UserController {
             @AuthenticationPrincipal Long userId,
             @RequestBody UserSettingsUpdateRequest request) {
         return ApiResponse.success(userService.updateSettings(userId, request));
+    }
+
+    // 전체 랭킹 조회
+    @Operation(summary = "이번 주 전체 랭킹 조회")
+    @GetMapping("/ranking")
+    public ApiResponse<List<RankingResponse>> getRanking() {
+        return ApiResponse.success(userService.getRanking());
+    }
+
+    // 내 순위 조회
+    @Operation(summary = "내 순위 조회")
+    @GetMapping("/ranking/me")
+    public ApiResponse<RankingResponse> getMyRanking(
+            @AuthenticationPrincipal Long userId) {
+        return ApiResponse.success(userService.getMyRanking(userId));
     }
 
     // 앱 접속 시작

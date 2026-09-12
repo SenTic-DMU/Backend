@@ -1,6 +1,5 @@
 package com.project.sentic.domain.user.service;
 
-import com.project.sentic.domain.message.entity.Message;
 import com.project.sentic.domain.message.repository.MessageRepository;
 import com.project.sentic.domain.user.dto.*;
 import com.project.sentic.domain.user.entity.User;
@@ -13,13 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -64,70 +58,28 @@ public class UserService {
 
     // 학습 통계 조회
     public StudyStatsResponse getStudyStats(Long userId) {
-        LocalDate today = LocalDate.now();
-        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
+        UserSettings settings = userSettingsRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        // 최근 7일 메시지 조회
-        List<Message> recentMessages = messageRepository
-                .findByRoomUserIdAndCreatedAtAfter(userId, weekStart.atStartOfDay());
+        List<StudyStatsResponse.DailyStudy> weekly = List.of(
+                StudyStatsResponse.DailyStudy.builder().day("Mon").minute(settings.getMonMinutes()).build(),
+                StudyStatsResponse.DailyStudy.builder().day("Tue").minute(settings.getTueMinutes()).build(),
+                StudyStatsResponse.DailyStudy.builder().day("Wed").minute(settings.getWedMinutes()).build(),
+                StudyStatsResponse.DailyStudy.builder().day("Thu").minute(settings.getThuMinutes()).build(),
+                StudyStatsResponse.DailyStudy.builder().day("Fri").minute(settings.getFriMinutes()).build(),
+                StudyStatsResponse.DailyStudy.builder().day("Sat").minute(settings.getSatMinutes()).build(),
+                StudyStatsResponse.DailyStudy.builder().day("Sun").minute(settings.getSunMinutes()).build()
+        );
 
-        // 요일별 학습 시간 계산 (메시지 1개당 1분으로 계산)
-        Map<DayOfWeek, Integer> minutesByDay = new LinkedHashMap<>();
-        for (DayOfWeek day : DayOfWeek.values()) {
-            minutesByDay.put(day, 0);
-        }
-
-        for (Message message : recentMessages) {
-            if (message.getSenderType() == Message.SenderType.USER) {
-                DayOfWeek day = message.getCreatedAt().getDayOfWeek();
-                minutesByDay.put(day, minutesByDay.get(day) + 1);
-            }
-        }
-
-        // weekly 리스트 생성
-        String[] dayNames = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-        DayOfWeek[] days = {DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-                DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY};
-
-        List<StudyStatsResponse.DailyStudy> weekly = new ArrayList<>();
-        int totalMinutes = 0;
-
-        for (int i = 0; i < 7; i++) {
-            int minutes = minutesByDay.get(days[i]);
-            totalMinutes += minutes;
-            weekly.add(StudyStatsResponse.DailyStudy.builder()
-                    .day(dayNames[i])
-                    .minute(minutes)
-                    .build());
-        }
-
+        int totalMinutes = settings.getWeeklyStudyTime();
         int avgMinutes = totalMinutes > 0 ? totalMinutes / 7 : 0;
-
-        // 연속 학습일 계산
-        int continuousDays = calculateContinuousDays(userId, today);
 
         return StudyStatsResponse.builder()
                 .totalMinutes(totalMinutes)
                 .avgMinutes(avgMinutes)
-                .continuousDays(continuousDays)
+                .continuousDays(settings.getStreakDays())
                 .weekly(weekly)
                 .build();
-    }
-
-    private int calculateContinuousDays(Long userId, LocalDate today) {
-        int days = 0;
-        LocalDate date = today;
-
-        while (true) {
-            LocalDateTime start = date.atStartOfDay();
-            LocalDateTime end = date.atTime(23, 59, 59);
-            boolean hasMessage = messageRepository
-                    .existsByRoomUserIdAndCreatedAtBetween(userId, start, end);
-            if (!hasMessage) break;
-            days++;
-            date = date.minusDays(1);
-        }
-        return days;
     }
 
     // 학습 레벨 변경
@@ -190,5 +142,46 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         settings.endSession();
+    }
+
+    // 전체 랭킹 조회
+    public List<RankingResponse> getRanking() {
+        List<UserSettings> allSettings = userSettingsRepository.findAllByOrderByWeeklyScoreDesc();
+
+        List<RankingResponse> ranking = new ArrayList<>();
+        for (int i = 0; i < allSettings.size(); i++) {
+            UserSettings s = allSettings.get(i);
+            User user = userRepository.findById(s.getUserId()).orElse(null);
+            if (user == null) continue;
+
+            ranking.add(RankingResponse.builder()
+                    .rank(i + 1)
+                    .userId(user.getId())
+                    .nickname(user.getNickname())
+                    .weeklyScore(s.getWeeklyScore())
+                    .build());
+        }
+        return ranking;
+    }
+
+    // 내 순위 조회
+    public RankingResponse getMyRanking(Long userId) {
+        List<UserSettings> allSettings = userSettingsRepository.findAllByOrderByWeeklyScoreDesc();
+
+        for (int i = 0; i < allSettings.size(); i++) {
+            UserSettings s = allSettings.get(i);
+            if (s.getUserId().equals(userId)) {
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+                return RankingResponse.builder()
+                        .rank(i + 1)
+                        .userId(user.getId())
+                        .nickname(user.getNickname())
+                        .weeklyScore(s.getWeeklyScore())
+                        .build();
+            }
+        }
+        throw new CustomException(ErrorCode.USER_NOT_FOUND);
     }
 }
