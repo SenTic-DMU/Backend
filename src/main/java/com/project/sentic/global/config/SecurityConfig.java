@@ -81,6 +81,7 @@ public class SecurityConfig {
                         // 누구나 접근 가능
                         .requestMatchers("/api/faq/**").permitAll()
                         .requestMatchers("/api/announcements/**").permitAll()
+                        .requestMatchers("/api/quiz/**").permitAll()
 
                         // 관리자만 접근 가능
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

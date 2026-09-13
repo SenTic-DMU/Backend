@@ -48,9 +48,14 @@ public class QuizService {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
-        // 2. 텍스트가 있는 메시지만 필터링
+        // 2. 텍스트가 있는 메시지만 필터링 (시스템 메시지 제외, 영어 포함 문장만)
         List<String> sentences = allMessages.stream()
                 .filter(m -> m.getContentText() != null && !m.getContentText().isBlank())
+                .filter(m -> !m.getContentText().contains("시스템"))
+                .filter(m -> !m.getContentText().contains("사용자가 방에"))
+                .filter(m -> !m.getContentText().contains("캐릭터에"))
+                .filter(m -> !m.getContentText().contains("대화를 시작"))
+                .filter(m -> m.getContentText().matches(".*[a-zA-Z].*"))
                 .map(Message::getContentText)
                 .collect(Collectors.toList());
 
@@ -203,30 +208,40 @@ public class QuizService {
         }
 
         return """
-                Generate 5 English quiz questions from these sentences:
-                
-                %s
-                
-                Question types to use: %s
-                
-                Rules:
-                1. Return a JSON array of 5 objects
-                2. Each object must have:
-                   - questionNo (1-5)
-                   - questionType ("FILL_BLANK" or "ARRANGE" or "MULTIPLE_CHOICE")
-                   - sentence (the quiz question)
-                     - FILL_BLANK: replace one key word with "_____"
-                     - ARRANGE: shuffle the words randomly, separated by " / "
-                     - MULTIPLE_CHOICE: show the Korean translation and 4 English options
-                   - translation (Korean translation of the original sentence)
-                   - answer (correct answer)
-                     - FILL_BLANK: the missing word
-                     - ARRANGE: the correct full sentence
-                     - MULTIPLE_CHOICE: the correct option text
-                   - options (array of 4 strings, MULTIPLE_CHOICE only, null for others)
-                   - explanation (Korean explanation of why this is the answer)
-                3. All explanations must be in Korean.
-                4. Return JSON array only. No markdown, no extra text.
-                """.formatted(sb.toString(), questionTypes);
+            Generate 5 English quiz questions from these sentences:
+            
+            %s
+            
+            Question types to use: %s
+            
+            Rules:
+            1. Return a JSON array of 5 objects
+            2. Each object must have:
+               - questionNo (1-5)
+               - questionType ("FILL_BLANK" or "ARRANGE" or "MULTIPLE_CHOICE")
+               - sentence (the quiz question)
+                 - FILL_BLANK: replace one educationally meaningful word with "_____"
+                   Follow this distribution strictly:
+                   * 50%% of FILL_BLANK questions: blank a KEY VERB (e.g. order, recommend, suggest, show, have, make)
+                   * 20%% of FILL_BLANK questions: blank a KEY NOUN (e.g. menu, reservation, coffee, receipt, meeting)
+                   * 30%% of FILL_BLANK questions: blank a PREPOSITION (e.g. at, on, in, for, to, with)
+                   NEVER blank out:
+                   * Pronouns (I, you, he, she, we, they)
+                   * Conjunctions (and, but, or)
+                   * Articles (a, the)
+                   * Modal verbs alone (can, will, could, would)
+                   * Words that can be guessed without understanding English
+                 - ARRANGE: shuffle the words randomly, separated by " / "
+                 - MULTIPLE_CHOICE: show the Korean translation and 4 English options
+               - translation (Korean translation of the original sentence)
+               - answer (correct answer)
+                 - FILL_BLANK: the missing word only
+                 - ARRANGE: the correct full sentence
+                 - MULTIPLE_CHOICE: the correct option text
+               - options (array of 4 strings, MULTIPLE_CHOICE only, null for others)
+               - explanation (Korean explanation of why this is the answer)
+            3. All explanations must be in Korean.
+            4. Return JSON array only. No markdown, no extra text.
+            """.formatted(sb.toString(), questionTypes);
     }
 }
