@@ -15,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.project.sentic.domain.feedback.entity.Feedback;
+import com.project.sentic.domain.feedback.repository.FeedbackRepository;
+import java.util.ArrayList;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +34,7 @@ public class QuizService {
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
     private final UserSettingsRepository userSettingsRepository;
+    private final FeedbackRepository feedbackRepository;
 
     // 퀴즈 문제 임시 저장 (quizId → 문제 목록)
     // 나가면 사라지는 일회성이라 DB 대신 메모리 사용
@@ -48,16 +52,49 @@ public class QuizService {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
-        // 2. 텍스트가 있는 메시지만 필터링 (시스템 메시지 제외, 영어 포함 문장만)
-        List<String> sentences = allMessages.stream()
-                .filter(m -> m.getContentText() != null && !m.getContentText().isBlank())
-                .filter(m -> !m.getContentText().contains("시스템"))
-                .filter(m -> !m.getContentText().contains("사용자가 방에"))
-                .filter(m -> !m.getContentText().contains("캐릭터에"))
-                .filter(m -> !m.getContentText().contains("대화를 시작"))
-                .filter(m -> m.getContentText().matches(".*[a-zA-Z].*"))
-                .map(Message::getContentText)
+        // 2. 퀴즈 출제 문장 수집
+        List<Long> messageIds = allMessages.stream()
+                .map(Message::getId)
                 .collect(Collectors.toList());
+
+        // 피드백 있는 메시지 ID 조회
+                List<Long> feedbackMessageIds = feedbackRepository.findByMessageIdIn(messageIds)
+                        .stream()
+                        .map(Feedback::getMessageId)
+                        .collect(Collectors.toList());
+
+        // 피드백의 perfect_sentence 수집
+                List<String> perfectSentences = feedbackRepository.findByMessageIdIn(messageIds)
+                        .stream()
+                        .filter(f -> f.getPerfectSentence() != null && !f.getPerfectSentence().isBlank())
+                        .map(Feedback::getPerfectSentence)
+                        .collect(Collectors.toList());
+
+                List<String> sentences = new ArrayList<>();
+
+        // 1) AI 메시지 추가
+                allMessages.stream()
+                        .filter(m -> m.getSenderType() == Message.SenderType.AI)
+                        .filter(m -> m.getContentText() != null && !m.getContentText().isBlank())
+                        .filter(m -> !m.getContentText().contains("시스템"))
+                        .filter(m -> !m.getContentText().contains("사용자가 방에"))
+                        .filter(m -> !m.getContentText().contains("캐릭터에"))
+                        .filter(m -> !m.getContentText().contains("대화를 시작"))
+                        .filter(m -> m.getContentText().matches(".*[a-zA-Z].*"))
+                        .map(Message::getContentText)
+                        .forEach(sentences::add);
+
+        // 2) 피드백 없는 사용자 메시지 추가 (올바른 문장)
+                allMessages.stream()
+                        .filter(m -> m.getSenderType() == Message.SenderType.USER)
+                        .filter(m -> m.getContentText() != null && !m.getContentText().isBlank())
+                        .filter(m -> !feedbackMessageIds.contains(m.getId()))
+                        .filter(m -> m.getContentText().matches(".*[a-zA-Z].*"))
+                        .map(Message::getContentText)
+                        .forEach(sentences::add);
+
+        // 3) 피드백의 perfect_sentence 추가 (교정된 문장)
+                sentences.addAll(perfectSentences);
 
         // 3. 랜덤으로 5개 선택
         Collections.shuffle(sentences);
