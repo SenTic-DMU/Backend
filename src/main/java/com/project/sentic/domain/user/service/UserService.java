@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -141,5 +142,46 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         settings.endSession();
+    }
+
+    // 전체 랭킹 조회
+    public List<RankingResponse> getRanking() {
+        List<UserSettings> allSettings = userSettingsRepository.findAllByOrderByWeeklyScoreDesc();
+
+        List<RankingResponse> ranking = new ArrayList<>();
+        for (int i = 0; i < allSettings.size(); i++) {
+            UserSettings s = allSettings.get(i);
+            User user = userRepository.findById(s.getUserId()).orElse(null);
+            if (user == null) continue;
+
+            ranking.add(RankingResponse.builder()
+                    .rank(i + 1)
+                    .userId(user.getId())
+                    .nickname(user.getNickname())
+                    .weeklyScore(s.getWeeklyScore())
+                    .build());
+        }
+        return ranking;
+    }
+
+    // 내 순위 조회
+    public RankingResponse getMyRanking(Long userId) {
+        List<UserSettings> allSettings = userSettingsRepository.findAllByOrderByWeeklyScoreDesc();
+
+        for (int i = 0; i < allSettings.size(); i++) {
+            UserSettings s = allSettings.get(i);
+            if (s.getUserId().equals(userId)) {
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+                return RankingResponse.builder()
+                        .rank(i + 1)
+                        .userId(user.getId())
+                        .nickname(user.getNickname())
+                        .weeklyScore(s.getWeeklyScore())
+                        .build();
+            }
+        }
+        throw new CustomException(ErrorCode.USER_NOT_FOUND);
     }
 }

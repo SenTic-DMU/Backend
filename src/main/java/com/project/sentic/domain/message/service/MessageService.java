@@ -28,6 +28,7 @@ import com.project.sentic.domain.message.dto.MessageResponse;
 import com.project.sentic.domain.feedback.entity.Feedback;
 import com.project.sentic.domain.feedback.repository.FeedbackRepository;
 import com.project.sentic.infra.ai.VoiceMapper;
+import com.project.sentic.domain.user.repository.UserSettingsRepository;
 
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +50,7 @@ public class MessageService {
     private final FeedbackService feedbackService;
     private final FeedbackRepository feedbackRepository;
     private final ContentFilterService contentFilterService;
+    private final UserSettingsRepository userSettingsRepository;
 
     @Transactional
     public ChatResponse chat(Long userId, Long roomId, String content) {
@@ -83,6 +85,9 @@ public class MessageService {
                 .contentText(content)
                 .sequenceNo(nextSeq)
                 .build());
+
+        userSettingsRepository.findByUserId(userId)
+                .ifPresent(settings -> settings.addMessageScore());
 
         messageRepository.save(Message.builder()
                 .roomId(roomId)
@@ -147,6 +152,9 @@ public class MessageService {
                 .contentText(userText)
                 .sequenceNo(nextSeq)
                 .build());
+
+        userSettingsRepository.findByUserId(userId)
+                .ifPresent(settings -> settings.addMessageScore());
 
         messageRepository.save(Message.builder()
                 .roomId(roomId)

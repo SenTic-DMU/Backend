@@ -7,6 +7,7 @@ import com.project.sentic.domain.message.repository.MessageRepository;
 import com.project.sentic.domain.quiz.dto.*;
 import com.project.sentic.domain.quiz.entity.QuizSession;
 import com.project.sentic.domain.quiz.repository.QuizSessionRepository;
+import com.project.sentic.domain.user.repository.UserSettingsRepository;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
 import com.project.sentic.infra.ai.OpenAiService;
@@ -14,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.project.sentic.domain.feedback.entity.Feedback;
+import com.project.sentic.domain.feedback.repository.FeedbackRepository;
+import java.util.ArrayList;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +33,8 @@ public class QuizService {
     private final MessageRepository messageRepository;
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
+    private final UserSettingsRepository userSettingsRepository;
+    private final FeedbackRepository feedbackRepository;
 
     // 퀴즈 문제 임시 저장 (quizId → 문제 목록)
     // 나가면 사라지는 일회성이라 DB 대신 메모리 사용
@@ -46,11 +52,49 @@ public class QuizService {
             throw new CustomException(ErrorCode.INVALID_INPUT);
         }
 
-        // 2. 텍스트가 있는 메시지만 필터링
-        List<String> sentences = allMessages.stream()
-                .filter(m -> m.getContentText() != null && !m.getContentText().isBlank())
-                .map(Message::getContentText)
+        // 2. 퀴즈 출제 문장 수집
+        List<Long> messageIds = allMessages.stream()
+                .map(Message::getId)
                 .collect(Collectors.toList());
+
+        // 피드백 있는 메시지 ID 조회
+                List<Long> feedbackMessageIds = feedbackRepository.findByMessageIdIn(messageIds)
+                        .stream()
+                        .map(Feedback::getMessageId)
+                        .collect(Collectors.toList());
+
+        // 피드백의 perfect_sentence 수집
+                List<String> perfectSentences = feedbackRepository.findByMessageIdIn(messageIds)
+                        .stream()
+                        .filter(f -> f.getPerfectSentence() != null && !f.getPerfectSentence().isBlank())
+                        .map(Feedback::getPerfectSentence)
+                        .collect(Collectors.toList());
+
+                List<String> sentences = new ArrayList<>();
+
+        // 1) AI 메시지 추가
+                allMessages.stream()
+                        .filter(m -> m.getSenderType() == Message.SenderType.AI)
+                        .filter(m -> m.getContentText() != null && !m.getContentText().isBlank())
+                        .filter(m -> !m.getContentText().contains("시스템"))
+                        .filter(m -> !m.getContentText().contains("사용자가 방에"))
+                        .filter(m -> !m.getContentText().contains("캐릭터에"))
+                        .filter(m -> !m.getContentText().contains("대화를 시작"))
+                        .filter(m -> m.getContentText().matches(".*[a-zA-Z].*"))
+                        .map(Message::getContentText)
+                        .forEach(sentences::add);
+
+        // 2) 피드백 없는 사용자 메시지 추가 (올바른 문장)
+                allMessages.stream()
+                        .filter(m -> m.getSenderType() == Message.SenderType.USER)
+                        .filter(m -> m.getContentText() != null && !m.getContentText().isBlank())
+                        .filter(m -> !feedbackMessageIds.contains(m.getId()))
+                        .filter(m -> m.getContentText().matches(".*[a-zA-Z].*"))
+                        .map(Message::getContentText)
+                        .forEach(sentences::add);
+
+        // 3) 피드백의 perfect_sentence 추가 (교정된 문장)
+                sentences.addAll(perfectSentences);
 
         // 3. 랜덤으로 5개 선택
         Collections.shuffle(sentences);
@@ -135,6 +179,12 @@ public class QuizService {
         // 점수 저장
         session.updateScore(score);
 
+        // 랭킹 점수 +1점 * 맞힌 개수
+        int finalScore = score;
+
+        userSettingsRepository.findByUserId(userId)
+                .ifPresent(settings -> settings.addQuizScore(finalScore));
+
         // 메모리에서 삭제
         quizCache.remove(quizId);
 
@@ -195,30 +245,40 @@ public class QuizService {
         }
 
         return """
-                Generate 5 English quiz questions from these sentences:
-                
-                %s
-                
-                Question types to use: %s
-                
-                Rules:
-                1. Return a JSON array of 5 objects
-                2. Each object must have:
-                   - questionNo (1-5)
-                   - questionType ("FILL_BLANK" or "ARRANGE" or "MULTIPLE_CHOICE")
-                   - sentence (the quiz question)
-                     - FILL_BLANK: replace one key word with "_____"
-                     - ARRANGE: shuffle the words randomly, separated by " / "
-                     - MULTIPLE_CHOICE: show the Korean translation and 4 English options
-                   - translation (Korean translation of the original sentence)
-                   - answer (correct answer)
-                     - FILL_BLANK: the missing word
-                     - ARRANGE: the correct full sentence
-                     - MULTIPLE_CHOICE: the correct option text
-                   - options (array of 4 strings, MULTIPLE_CHOICE only, null for others)
-                   - explanation (Korean explanation of why this is the answer)
-                3. All explanations must be in Korean.
-                4. Return JSON array only. No markdown, no extra text.
-                """.formatted(sb.toString(), questionTypes);
+            Generate 5 English quiz questions from these sentences:
+            
+            %s
+            
+            Question types to use: %s
+            
+            Rules:
+            1. Return a JSON array of 5 objects
+            2. Each object must have:
+               - questionNo (1-5)
+               - questionType ("FILL_BLANK" or "ARRANGE" or "MULTIPLE_CHOICE")
+               - sentence (the quiz question)
+                 - FILL_BLANK: replace one educationally meaningful word with "_____"
+                   Follow this distribution strictly:
+                   * 50%% of FILL_BLANK questions: blank a KEY VERB (e.g. order, recommend, suggest, show, have, make)
+                   * 20%% of FILL_BLANK questions: blank a KEY NOUN (e.g. menu, reservation, coffee, receipt, meeting)
+                   * 30%% of FILL_BLANK questions: blank a PREPOSITION (e.g. at, on, in, for, to, with)
+                   NEVER blank out:
+                   * Pronouns (I, you, he, she, we, they)
+                   * Conjunctions (and, but, or)
+                   * Articles (a, the)
+                   * Modal verbs alone (can, will, could, would)
+                   * Words that can be guessed without understanding English
+                 - ARRANGE: shuffle the words randomly, separated by " / "
+                 - MULTIPLE_CHOICE: show the Korean translation and 4 English options
+               - translation (Korean translation of the original sentence)
+               - answer (correct answer)
+                 - FILL_BLANK: the missing word only
+                 - ARRANGE: the correct full sentence
+                 - MULTIPLE_CHOICE: the correct option text
+               - options (array of 4 strings, MULTIPLE_CHOICE only, null for others)
+               - explanation (Korean explanation of why this is the answer)
+            3. All explanations must be in Korean.
+            4. Return JSON array only. No markdown, no extra text.
+            """.formatted(sb.toString(), questionTypes);
     }
 }
