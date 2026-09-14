@@ -94,6 +94,14 @@ public class UserSettings {
     @Builder.Default
     private int weeklyScore = 0;
 
+    @Column(name = "rank_1_total", nullable = false)
+    @Builder.Default
+    private int rank1Total = 0;
+
+    @Column(name = "rank_1_streak", nullable = false)
+    @Builder.Default
+    private int rank1Streak = 0;
+
 
     // ── Enum ──────────────────────────────────────
 
@@ -175,5 +183,14 @@ public class UserSettings {
     @PrePersist
     public void prePersist() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void addRank1() {
+        this.rank1Total += 1;
+        this.rank1Streak += 1;
+    }
+
+    public void resetRank1Streak() {
+        this.rank1Streak = 0;
     }
 }

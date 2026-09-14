@@ -2,6 +2,7 @@ package com.project.sentic.domain.quiz.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.sentic.domain.badge.service.BadgeService;
 import com.project.sentic.domain.message.entity.Message;
 import com.project.sentic.domain.message.repository.MessageRepository;
 import com.project.sentic.domain.quiz.dto.*;
@@ -35,6 +36,7 @@ public class QuizService {
     private final ObjectMapper objectMapper;
     private final UserSettingsRepository userSettingsRepository;
     private final FeedbackRepository feedbackRepository;
+    private final BadgeService badgeService;
 
     // 퀴즈 문제 임시 저장 (quizId → 문제 목록)
     // 나가면 사라지는 일회성이라 DB 대신 메모리 사용
@@ -187,6 +189,13 @@ public class QuizService {
 
         // 메모리에서 삭제
         quizCache.remove(quizId);
+
+        // 뱃지 체크
+        try {
+            badgeService.checkAndAwardBadges(userId);
+        } catch (Exception e) {
+            log.warn("[Badge] 뱃지 체크 실패: {}", e.getMessage());
+        }
 
         return QuizResultResponse.builder()
                 .quizId(quizId)
