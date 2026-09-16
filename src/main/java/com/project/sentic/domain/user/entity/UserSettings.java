@@ -178,8 +178,8 @@ public class UserSettings {
         this.sessionStartedAt = LocalDateTime.now();
     }
 
-    public void endSession() {
-        if (sessionStartedAt == null) return;
+    public int endSession() {
+        if (sessionStartedAt == null) return 0;
 
         long minutes = java.time.Duration.between(sessionStartedAt, LocalDateTime.now()).toMinutes();
         DayOfWeek today = LocalDate.now().getDayOfWeek();
@@ -209,6 +209,8 @@ public class UserSettings {
         this.lastStudiedAt = now;
         this.sessionStartedAt = null;
         this.updatedAt = now;
+
+        return (int) minutes;
     }
 
     // 대화 메시지 점수 추가 (+2점)
