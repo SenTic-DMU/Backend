@@ -102,6 +102,34 @@ public class UserSettings {
     @Builder.Default
     private int rank1Streak = 0;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "league", nullable = false)
+    @Builder.Default
+    private League league = League.BRONZE;
+
+    @Column(name = "rank_1_bronze", nullable = false)
+    @Builder.Default
+    private boolean rank1Bronze = false;
+
+    @Column(name = "rank_1_silver", nullable = false)
+    @Builder.Default
+    private boolean rank1Silver = false;
+
+    @Column(name = "rank_1_gold", nullable = false)
+    @Builder.Default
+    private boolean rank1Gold = false;
+
+    @Column(name = "rank_1_sapphire", nullable = false)
+    @Builder.Default
+    private boolean rank1Sapphire = false;
+
+    @Column(name = "rank_1_diamond", nullable = false)
+    @Builder.Default
+    private boolean rank1Diamond = false;
+
+    @Column(name = "rank_1_master", nullable = false)
+    @Builder.Default
+    private boolean rank1Master = false;
 
     // ── Enum ──────────────────────────────────────
 
@@ -113,6 +141,9 @@ public class UserSettings {
         BEGINNER, INTERMEDIATE, ADVANCED
     }
 
+    public enum League {
+        BRONZE, SILVER, GOLD, SAPPHIRE, DIAMOND, MASTER
+    }
 
     // ── 수정 메서드 ──────────────────────────────────
 
@@ -192,5 +223,28 @@ public class UserSettings {
 
     public void resetRank1Streak() {
         this.rank1Streak = 0;
+    }
+
+    // 리그 변경
+    public void updateLeague(League league) {
+        this.league = league;
+    }
+
+    // 리그별 1위 기록
+    public void markRank1InLeague(League league) {
+        switch (league) {
+            case BRONZE -> this.rank1Bronze = true;
+            case SILVER -> this.rank1Silver = true;
+            case GOLD -> this.rank1Gold = true;
+            case SAPPHIRE -> this.rank1Sapphire = true;
+            case DIAMOND -> this.rank1Diamond = true;
+            case MASTER -> this.rank1Master = true;
+        }
+    }
+
+    // 모든 리그 1위 달성 여부
+    public boolean isAllLeagueRank1() {
+        return rank1Bronze && rank1Silver && rank1Gold
+                && rank1Sapphire && rank1Diamond && rank1Master;
     }
 }
