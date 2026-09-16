@@ -36,9 +36,11 @@ public enum ErrorCode {
     // 방
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 방입니다."),
     ROOM_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 방에 접근 권한이 없습니다."),
+    ROOM_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "방 개수를 초과했습니다. (무료 회원: 최대 3개)"),
 
     // 메시지
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
+    DAILY_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "오늘 대화 횟수를 초과했습니다. (무료 회원: 하루 30회)"),
 
     // AI
     AI_API_ERROR(HttpStatus.BAD_GATEWAY, "AI 서비스 오류가 발생했습니다."),

@@ -107,6 +107,21 @@ public class UserSettings {
     @Builder.Default
     private League league = League.BRONZE;
 
+    @Column(name = "plan", nullable = false)
+    @Builder.Default
+    private String plan = "FREE";
+
+    @Column(name = "daily_voice_count", nullable = false)
+    @Builder.Default
+    private int dailyVoiceCount = 0;
+
+    @Column(name = "daily_chat_count", nullable = false)
+    @Builder.Default
+    private int dailyChatCount = 0;
+
+    @Column(name = "last_message_date")
+    private LocalDate lastMessageDate;
+
     @Column(name = "rank_1_bronze", nullable = false)
     @Builder.Default
     private boolean rank1Bronze = false;
@@ -246,5 +261,53 @@ public class UserSettings {
     public boolean isAllLeagueRank1() {
         return rank1Bronze && rank1Silver && rank1Gold
                 && rank1Sapphire && rank1Diamond && rank1Master;
+    }
+
+    // 요금제 확인
+    public boolean isPremium() {
+        return "MONTHLY".equals(plan) || "YEARLY".equals(plan);
+    }
+
+    // 대화 가능 여부 (타입별 체크)
+    public boolean canSendMessage(String roomType) {
+        LocalDate today = LocalDate.now();
+
+        // 날짜 바뀌면 카운트 초기화
+        if (lastMessageDate == null || !lastMessageDate.equals(today)) {
+            this.dailyVoiceCount = 0;
+            this.dailyChatCount = 0;
+            this.lastMessageDate = today;
+        }
+
+        // 프리미엄은 무제한
+        if (isPremium()) return true;
+
+        // 무료는 각각 30번 제한
+        if ("VOICE".equals(roomType)) {
+            return dailyVoiceCount < 30;
+        } else {
+            return dailyChatCount < 30;
+        }
+    }
+
+    // 대화 횟수 증가 (타입별)
+    public void incrementMessageCount(String roomType) {
+        LocalDate today = LocalDate.now();
+        if (lastMessageDate == null || !lastMessageDate.equals(today)) {
+            this.dailyVoiceCount = 0;
+            this.dailyChatCount = 0;
+            this.lastMessageDate = today;
+        }
+
+        if ("VOICE".equals(roomType)) {
+            this.dailyVoiceCount += 1;
+        } else {
+            this.dailyChatCount += 1;
+        }
+    }
+
+    // 요금제 변경
+    public void updatePlan(String plan) {
+        this.plan = plan;
     }
 }
