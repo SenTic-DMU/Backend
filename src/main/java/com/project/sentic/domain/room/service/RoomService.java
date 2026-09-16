@@ -6,12 +6,14 @@ import com.project.sentic.domain.room.dto.RoomCreateRequest;
 import com.project.sentic.domain.room.dto.RoomResponse;
 import com.project.sentic.domain.room.entity.Room;
 import com.project.sentic.domain.room.repository.RoomRepository;
+import com.project.sentic.domain.user.entity.UserSettings;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
 import com.project.sentic.global.filter.ContentFilterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.project.sentic.domain.user.repository.UserSettingsRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,9 +26,22 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final ObjectMapper objectMapper;
     private final ContentFilterService contentFilterService;
+    private final UserSettingsRepository userSettingsRepository;
 
     @Transactional
     public RoomResponse createRoom(Long userId, RoomCreateRequest request) {
+
+        // 무료 사용자 방 3개 제한
+        UserSettings settings = userSettingsRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        if (!settings.isPremium()) {
+            long roomCount = roomRepository.countByUserIdAndRoomTypeAndDeletedFalse(userId, request.getRoomType());
+            if (roomCount >= 3) {
+                throw new CustomException(ErrorCode.ROOM_LIMIT_EXCEEDED);
+            }
+        }
+
         contentFilterService.check(request.getSituation());
 
         String charactersJson = serializeCharacters(request.getCharacters());

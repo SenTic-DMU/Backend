@@ -135,14 +135,14 @@ public class BadgeService {
             case "CHAT_200" -> getChatCount(userId) >= 200;
             case "QUIZ_150" -> getQuizCorrectCount(userId) >= 150;
             case "STUDY_3H" -> getStudyMinutes(userId) >= 180;
-            case "RANK_1" -> getRank1Total(userId) >= 1;
+            case "RANK_1" -> getRank1Streak(userId) >= 1;
             case "BADGE_7" -> userBadgeRepository.countByUserId(userId) >= 7;
 
             // 고급
             case "STREAK_30" -> getStreakDays(userId) >= 30;
             case "STUDY_10H" -> getStudyMinutes(userId) >= 600;
             case "RANK_1_STREAK_5" -> getRank1Streak(userId) >= 5;
-            case "RANK_1_TOTAL_10" -> getRank1Total(userId) >= 10;
+            case "LEAGUE_ALL_RANK_1" -> isAllLeagueRank1(userId);
 
             // 특별
             case "BADGE_ALL" -> userBadgeRepository.countByUserId(userId) >= 12;
@@ -217,5 +217,11 @@ public class BadgeService {
         return userSettingsRepository.findByUserId(userId)
                 .map(UserSettings::getRank1Streak)
                 .orElse(0);
+    }
+
+    private boolean isAllLeagueRank1(Long userId) {
+        return userSettingsRepository.findByUserId(userId)
+                .map(UserSettings::isAllLeagueRank1)
+                .orElse(false);
     }
 }

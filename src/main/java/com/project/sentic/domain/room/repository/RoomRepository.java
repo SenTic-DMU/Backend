@@ -20,6 +20,9 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     List<Room> findByUserIdAndDeletedTrueOrderByDeletedAtDesc(Long userId);
 
+    // 유저의 타입별 활성 방 개수
+    long countByUserIdAndRoomTypeAndDeletedFalse(Long userId, Room.RoomType roomType);
+
     @Modifying
     @Query("DELETE FROM Room r WHERE r.deleted = true AND r.deletedAt < :expiredDate")
     int deleteAllByDeletedTrueAndDeletedAtBefore(@Param("expiredDate") LocalDateTime expiredDate);

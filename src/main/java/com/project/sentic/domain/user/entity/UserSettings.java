@@ -102,6 +102,49 @@ public class UserSettings {
     @Builder.Default
     private int rank1Streak = 0;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "league", nullable = false)
+    @Builder.Default
+    private League league = League.BRONZE;
+
+    @Column(name = "plan", nullable = false)
+    @Builder.Default
+    private String plan = "FREE";
+
+    @Column(name = "daily_voice_count", nullable = false)
+    @Builder.Default
+    private int dailyVoiceCount = 0;
+
+    @Column(name = "daily_chat_count", nullable = false)
+    @Builder.Default
+    private int dailyChatCount = 0;
+
+    @Column(name = "last_message_date")
+    private LocalDate lastMessageDate;
+
+    @Column(name = "rank_1_bronze", nullable = false)
+    @Builder.Default
+    private boolean rank1Bronze = false;
+
+    @Column(name = "rank_1_silver", nullable = false)
+    @Builder.Default
+    private boolean rank1Silver = false;
+
+    @Column(name = "rank_1_gold", nullable = false)
+    @Builder.Default
+    private boolean rank1Gold = false;
+
+    @Column(name = "rank_1_sapphire", nullable = false)
+    @Builder.Default
+    private boolean rank1Sapphire = false;
+
+    @Column(name = "rank_1_diamond", nullable = false)
+    @Builder.Default
+    private boolean rank1Diamond = false;
+
+    @Column(name = "rank_1_master", nullable = false)
+    @Builder.Default
+    private boolean rank1Master = false;
 
     // ── Enum ──────────────────────────────────────
 
@@ -113,6 +156,9 @@ public class UserSettings {
         BEGINNER, INTERMEDIATE, ADVANCED
     }
 
+    public enum League {
+        BRONZE, SILVER, GOLD, SAPPHIRE, DIAMOND, MASTER
+    }
 
     // ── 수정 메서드 ──────────────────────────────────
 
@@ -132,8 +178,8 @@ public class UserSettings {
         this.sessionStartedAt = LocalDateTime.now();
     }
 
-    public void endSession() {
-        if (sessionStartedAt == null) return;
+    public int endSession() {
+        if (sessionStartedAt == null) return 0;
 
         long minutes = java.time.Duration.between(sessionStartedAt, LocalDateTime.now()).toMinutes();
         DayOfWeek today = LocalDate.now().getDayOfWeek();
@@ -163,6 +209,8 @@ public class UserSettings {
         this.lastStudiedAt = now;
         this.sessionStartedAt = null;
         this.updatedAt = now;
+
+        return (int) minutes;
     }
 
     // 대화 메시지 점수 추가 (+2점)
@@ -192,5 +240,76 @@ public class UserSettings {
 
     public void resetRank1Streak() {
         this.rank1Streak = 0;
+    }
+
+    // 리그 변경
+    public void updateLeague(League league) {
+        this.league = league;
+    }
+
+    // 리그별 1위 기록
+    public void markRank1InLeague(League league) {
+        switch (league) {
+            case BRONZE -> this.rank1Bronze = true;
+            case SILVER -> this.rank1Silver = true;
+            case GOLD -> this.rank1Gold = true;
+            case SAPPHIRE -> this.rank1Sapphire = true;
+            case DIAMOND -> this.rank1Diamond = true;
+            case MASTER -> this.rank1Master = true;
+        }
+    }
+
+    // 모든 리그 1위 달성 여부
+    public boolean isAllLeagueRank1() {
+        return rank1Bronze && rank1Silver && rank1Gold
+                && rank1Sapphire && rank1Diamond && rank1Master;
+    }
+
+    // 요금제 확인
+    public boolean isPremium() {
+        return "MONTHLY".equals(plan) || "YEARLY".equals(plan);
+    }
+
+    // 대화 가능 여부 (타입별 체크)
+    public boolean canSendMessage(String roomType) {
+        LocalDate today = LocalDate.now();
+
+        // 날짜 바뀌면 카운트 초기화
+        if (lastMessageDate == null || !lastMessageDate.equals(today)) {
+            this.dailyVoiceCount = 0;
+            this.dailyChatCount = 0;
+            this.lastMessageDate = today;
+        }
+
+        // 프리미엄은 무제한
+        if (isPremium()) return true;
+
+        // 무료는 각각 30번 제한
+        if ("VOICE".equals(roomType)) {
+            return dailyVoiceCount < 30;
+        } else {
+            return dailyChatCount < 30;
+        }
+    }
+
+    // 대화 횟수 증가 (타입별)
+    public void incrementMessageCount(String roomType) {
+        LocalDate today = LocalDate.now();
+        if (lastMessageDate == null || !lastMessageDate.equals(today)) {
+            this.dailyVoiceCount = 0;
+            this.dailyChatCount = 0;
+            this.lastMessageDate = today;
+        }
+
+        if ("VOICE".equals(roomType)) {
+            this.dailyVoiceCount += 1;
+        } else {
+            this.dailyChatCount += 1;
+        }
+    }
+
+    // 요금제 변경
+    public void updatePlan(String plan) {
+        this.plan = plan;
     }
 }

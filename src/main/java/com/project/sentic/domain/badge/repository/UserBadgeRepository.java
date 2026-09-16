@@ -18,4 +18,7 @@ public interface UserBadgeRepository extends JpaRepository<UserBadge, Long> {
 
     // 유저의 뱃지 개수
     long countByUserId(Long userId);
+
+    // 특정 뱃지 삭제 (이번 주의 왕 제거용)
+    void deleteByUserIdAndBadgeId(Long userId, Long badgeId);
 }

@@ -1,11 +1,12 @@
 package com.project.sentic.domain.user.service;
 
-import com.project.sentic.domain.message.repository.MessageRepository;
+import com.project.sentic.domain.report.service.ReportService;
 import com.project.sentic.domain.user.dto.*;
 import com.project.sentic.domain.user.entity.User;
 import com.project.sentic.domain.user.entity.UserSettings;
 import com.project.sentic.domain.user.repository.UserRepository;
 import com.project.sentic.domain.user.repository.UserSettingsRepository;
+import com.project.sentic.domain.badge.service.BadgeService;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +22,10 @@ import java.util.ArrayList;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final MessageRepository messageRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BadgeService badgeService;
+    private final ReportService reportService;
 
     // 회원 탈퇴 (기존 코드 유지)
     @Transactional
@@ -141,7 +143,12 @@ public class UserService {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        settings.endSession();
+        int minutes = settings.endSession();
+
+        // 학습 시간 기록
+        if (minutes > 0) {
+            reportService.logStudyMinutes(userId, minutes);
+        }
     }
 
     // 전체 랭킹 조회
@@ -183,5 +190,43 @@ public class UserService {
             }
         }
         throw new CustomException(ErrorCode.USER_NOT_FOUND);
+    }
+
+    // 내 리그 + 리그 내 순위 조회
+    public LeagueResponse getMyLeague(Long userId) {
+        UserSettings mySettings = userSettingsRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        List<UserSettings> leagueMembers = userSettingsRepository
+                .findByLeagueOrderByWeeklyScoreDesc(mySettings.getLeague());
+
+        int myRank = 0;
+        List<LeagueResponse.LeagueMemberItem> members = new ArrayList<>();
+
+        for (int i = 0; i < leagueMembers.size(); i++) {
+            UserSettings s = leagueMembers.get(i);
+            User user = userRepository.findById(s.getUserId()).orElse(null);
+            if (user == null) continue;
+
+            if (s.getUserId().equals(userId)) {
+                myRank = i + 1;
+            }
+
+            members.add(LeagueResponse.LeagueMemberItem.builder()
+                    .rank(i + 1)
+                    .userId(user.getId())
+                    .nickname(user.getNickname())
+                    .weeklyScore(s.getWeeklyScore())
+                    .featuredBadges(badgeService.getFeaturedBadges(user.getId()))
+                    .build());
+        }
+
+        return LeagueResponse.builder()
+                .league(mySettings.getLeague().name())
+                .myRank(myRank)
+                .myScore(mySettings.getWeeklyScore())
+                .totalMembers(leagueMembers.size())
+                .members(members)
+                .build();
     }
 }
