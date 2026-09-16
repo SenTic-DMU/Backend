@@ -179,14 +179,22 @@ public class AuthService {
 
     /**
      * 카카오 소셜 로그인
-     * 1. accessToken으로 카카오 사용자 정보 조회
+     * 1. code 또는 accessToken으로 카카오 사용자 정보 조회
      * 2. provider + providerId로 기존 회원 조회
      * 3. 없으면 자동 가입, 있으면 로그인
      * 4. JWT 발급
      */
     @Transactional
     public TokenResponseDto kakaoLogin(SocialLoginRequest request) {
-        KakaoUserInfo userInfo = kakaoClient.getUserInfo(request.getAccessToken());
+        // code가 있으면 토큰 교환, 없으면 accessToken 직접 사용
+        String accessToken;
+        if (request.getCode() != null && !request.getCode().isEmpty()) {
+            accessToken = kakaoClient.getAccessToken(request.getCode());
+        } else {
+            accessToken = request.getAccessToken();
+        }
+
+        KakaoUserInfo userInfo = kakaoClient.getUserInfo(accessToken);
 
         String providerId = String.valueOf(userInfo.getId());
         String nickname = extractKakaoNickname(userInfo);
@@ -228,17 +236,19 @@ public class AuthService {
     }
 
     private User registerSocialUser(String email, String nickname, User.Provider provider, String providerId) {
-        String loginId = provider.name().toLowerCase() + "_" + providerId;
-        String uniqueNickname = resolveNickname(nickname);
-        User user = User.createSocialUser(loginId, email, uniqueNickname, provider, providerId);
-        User saved = userRepository.save(user);
+        return userRepository.findByProviderAndProviderId(provider, providerId)
+                .orElseGet(() -> {
+                    String loginId = provider.name().toLowerCase() + "_" + providerId;
+                    String uniqueNickname = resolveNickname(nickname);
+                    User user = User.createSocialUser(loginId, email, uniqueNickname, provider, providerId);
+                    User saved = userRepository.save(user);
 
-        // 유저 설정 자동 생성
-        userSettingsRepository.save(UserSettings.builder()
-                .userId(saved.getId())
-                .build());
+                    userSettingsRepository.save(UserSettings.builder()
+                            .userId(saved.getId())
+                            .build());
 
-        return saved;
+                    return saved;
+                });
     }
 
     // 닉네임 중복 시 숫자 접미사 붙여 유니크하게 만들기
