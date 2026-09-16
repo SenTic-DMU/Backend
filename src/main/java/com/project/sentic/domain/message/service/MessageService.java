@@ -3,6 +3,7 @@ package com.project.sentic.domain.message.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.sentic.domain.badge.service.BadgeService;
 import com.project.sentic.domain.feedback.dto.FeedbackResponse;
 import com.project.sentic.domain.feedback.service.FeedbackService;
 import com.project.sentic.domain.message.dto.ChatResponse;
@@ -51,6 +52,7 @@ public class MessageService {
     private final FeedbackRepository feedbackRepository;
     private final ContentFilterService contentFilterService;
     private final UserSettingsRepository userSettingsRepository;
+    private final BadgeService badgeService;
 
     @Transactional
     public ChatResponse chat(Long userId, Long roomId, String content) {
@@ -110,6 +112,13 @@ public class MessageService {
             );
         } catch (Exception e) {
             log.warn("[Feedback] 피드백 생성 실패: {}", e.getMessage());
+        }
+
+        // 뱃지 체크
+        try {
+            badgeService.checkAndAwardBadges(userId);
+        } catch (Exception e) {
+            log.warn("[Badge] 뱃지 체크 실패: {}", e.getMessage());
         }
 
         return new ChatResponse(aiContent, feedback);
@@ -189,6 +198,13 @@ public class MessageService {
             );
         } catch (Exception e) {
             log.warn("[Feedback] 피드백 생성 실패: {}", e.getMessage());
+        }
+
+        // 뱃지 체크
+        try {
+            badgeService.checkAndAwardBadges(userId);
+        } catch (Exception e) {
+            log.warn("[Badge] 뱃지 체크 실패: {}", e.getMessage());
         }
 
         return new VoiceResponse(userText, aiContent, audioUrl, feedback);
