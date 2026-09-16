@@ -11,6 +11,7 @@ import com.project.sentic.domain.message.entity.Message;
 import com.project.sentic.domain.message.repository.MessageRepository;
 import com.project.sentic.domain.room.entity.Room;
 import com.project.sentic.domain.room.repository.RoomRepository;
+import com.project.sentic.domain.user.entity.UserSettings;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
 import com.project.sentic.global.filter.ContentFilterService;
@@ -65,6 +66,16 @@ public class MessageService {
             throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
         }
 
+        // 대화 횟수 제한 체크
+        UserSettings settings = userSettingsRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        if (!settings.canSendMessage("CHAT")) {
+            throw new CustomException(ErrorCode.DAILY_LIMIT_EXCEEDED);
+        }
+
+        settings.incrementMessageCount("CHAT");
+
         String systemPrompt = buildSystemPrompt(room);
 
         List<Message> recent = messageRepository.findTop10ByRoomIdOrderBySequenceNoDesc(roomId);
@@ -80,6 +91,8 @@ public class MessageService {
 
         int nextSeq = messageRepository.findMaxSequenceNoByRoomId(roomId) + 1;
 
+
+
         // 유저 메시지 저장
         Message userMessage = messageRepository.save(Message.builder()
                 .roomId(roomId)
@@ -88,8 +101,7 @@ public class MessageService {
                 .sequenceNo(nextSeq)
                 .build());
 
-        userSettingsRepository.findByUserId(userId)
-                .ifPresent(settings -> settings.addMessageScore());
+        settings.addMessageScore();
 
         messageRepository.save(Message.builder()
                 .roomId(roomId)
@@ -133,6 +145,16 @@ public class MessageService {
             throw new CustomException(ErrorCode.ROOM_ACCESS_DENIED);
         }
 
+        // 대화 횟수 제한 체크
+        UserSettings settings = userSettingsRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        if (!settings.canSendMessage("VOICE")) {
+            throw new CustomException(ErrorCode.DAILY_LIMIT_EXCEEDED);
+        }
+
+        settings.incrementMessageCount("VOICE");
+
         // 1. STT: 음성 → 텍스트
         String userText = openAiService.transcribe(audioFile);
         contentFilterService.check(userText);
@@ -162,8 +184,7 @@ public class MessageService {
                 .sequenceNo(nextSeq)
                 .build());
 
-        userSettingsRepository.findByUserId(userId)
-                .ifPresent(settings -> settings.addMessageScore());
+        settings.addMessageScore();
 
         messageRepository.save(Message.builder()
                 .roomId(roomId)
