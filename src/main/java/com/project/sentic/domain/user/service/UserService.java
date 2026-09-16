@@ -1,5 +1,6 @@
 package com.project.sentic.domain.user.service;
 
+import com.project.sentic.domain.report.service.ReportService;
 import com.project.sentic.domain.user.dto.*;
 import com.project.sentic.domain.user.entity.User;
 import com.project.sentic.domain.user.entity.UserSettings;
@@ -24,6 +25,7 @@ public class UserService {
     private final UserSettingsRepository userSettingsRepository;
     private final PasswordEncoder passwordEncoder;
     private final BadgeService badgeService;
+    private final ReportService reportService;
 
     // 회원 탈퇴 (기존 코드 유지)
     @Transactional
@@ -141,7 +143,12 @@ public class UserService {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        settings.endSession();
+        int minutes = settings.endSession();
+
+        // 학습 시간 기록
+        if (minutes > 0) {
+            reportService.logStudyMinutes(userId, minutes);
+        }
     }
 
     // 전체 랭킹 조회
