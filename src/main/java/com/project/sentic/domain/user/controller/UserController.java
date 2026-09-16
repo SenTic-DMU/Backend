@@ -101,4 +101,12 @@ public class UserController {
         userService.endSession(userId);
         return ApiResponse.success(null);
     }
+
+    // 내 리그 + 리그 내 순위 조회
+    @Operation(summary = "내 리그 + 리그 내 순위 조회")
+    @GetMapping("/league")
+    public ApiResponse<LeagueResponse> getMyLeague(
+            @AuthenticationPrincipal Long userId) {
+        return ApiResponse.success(userService.getMyLeague(userId));
+    }
 }

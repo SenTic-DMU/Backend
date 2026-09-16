@@ -22,4 +22,7 @@ public interface UserSettingsRepository extends JpaRepository<UserSettings, Long
 
     // 점수 높은 순 정렬
     List<UserSettings> findAllByOrderByWeeklyScoreDesc();
+
+    // 리그별 유저 조회 (점수 높은순)
+    List<UserSettings> findByLeagueOrderByWeeklyScoreDesc(UserSettings.League league);
 }
