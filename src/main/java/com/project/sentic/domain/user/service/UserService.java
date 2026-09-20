@@ -58,32 +58,6 @@ public class UserService {
         return MyPageResponse.of(user, settings);
     }
 
-    // 학습 통계 조회
-    public StudyStatsResponse getStudyStats(Long userId) {
-        UserSettings settings = userSettingsRepository.findByUserId(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
-        List<StudyStatsResponse.DailyStudy> weekly = List.of(
-                StudyStatsResponse.DailyStudy.builder().day("Mon").minute(settings.getMonMinutes()).build(),
-                StudyStatsResponse.DailyStudy.builder().day("Tue").minute(settings.getTueMinutes()).build(),
-                StudyStatsResponse.DailyStudy.builder().day("Wed").minute(settings.getWedMinutes()).build(),
-                StudyStatsResponse.DailyStudy.builder().day("Thu").minute(settings.getThuMinutes()).build(),
-                StudyStatsResponse.DailyStudy.builder().day("Fri").minute(settings.getFriMinutes()).build(),
-                StudyStatsResponse.DailyStudy.builder().day("Sat").minute(settings.getSatMinutes()).build(),
-                StudyStatsResponse.DailyStudy.builder().day("Sun").minute(settings.getSunMinutes()).build()
-        );
-
-        int totalMinutes = settings.getWeeklyStudyTime();
-        int avgMinutes = totalMinutes > 0 ? totalMinutes / 7 : 0;
-
-        return StudyStatsResponse.builder()
-                .totalMinutes(totalMinutes)
-                .avgMinutes(avgMinutes)
-                .continuousDays(settings.getStreakDays())
-                .weekly(weekly)
-                .build();
-    }
-
     // 학습 레벨 변경
     @Transactional
     public UserSettingsResponse updateLevel(Long userId, String difficulty) {
