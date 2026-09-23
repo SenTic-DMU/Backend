@@ -2,7 +2,8 @@ package com.project.sentic.domain.payment.repository;
 
 import com.project.sentic.domain.payment.entity.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.List;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
@@ -15,4 +16,12 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     // 회원별 결제 내역
     List<Payment> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    Optional<Payment>
+    findFirstByUserIdAndStatusAndExpiresAtAfterAndPlanIdNotOrderByPaidAtDesc(
+            Long userId,
+            Payment.PaymentStatus status,
+            LocalDateTime now,
+            Integer excludedPlanId
+    );
 }

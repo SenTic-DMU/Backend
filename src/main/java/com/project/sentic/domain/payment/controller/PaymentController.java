@@ -34,4 +34,19 @@ public class PaymentController {
             @AuthenticationPrincipal Long userId) {
         return ApiResponse.success(paymentService.getMyPayments(userId));
     }
+
+    @Operation(
+            summary = "구독 해지 예약",
+            description = "현재 Premium 이용기간은 유지하고, 이용기간 종료 시 구독이 해지됩니다."
+    )
+    @PostMapping("/subscription/cancel")
+    public ApiResponse<PaymentResponse> cancelSubscription(
+            @AuthenticationPrincipal Long userId
+    ) {
+
+        return ApiResponse.success(
+                paymentService.cancelSubscription(userId)
+        );
+    }
+
 }
