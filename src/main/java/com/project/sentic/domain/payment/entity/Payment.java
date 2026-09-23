@@ -43,17 +43,34 @@ public class Payment {
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
+    @Column(name = "cancel_at_period_end", nullable = false)
+    @Builder.Default
+    private Boolean cancelAtPeriodEnd = false;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+
+        if (this.cancelAtPeriodEnd == null) {
+            this.cancelAtPeriodEnd = false;
+        }
     }
 
-    // ── Enum ──────────────────────────────────────
+    public void scheduleCancellation() {
+        this.cancelAtPeriodEnd = true;
+        this.cancelledAt = LocalDateTime.now();
+    }
 
     public enum PaymentStatus {
-        PENDING, SUCCESS, FAILED, CANCELLED
+        PENDING,
+        SUCCESS,
+        FAILED,
+        CANCELLED
     }
 }

@@ -56,8 +56,23 @@ public class PaymentService {
 
         // 유료 플랜: 토스페이먼츠 승인 API 호출
         try {
+
             TossConfirmResponse tossResponse = tossPaymentClient.confirm(
-                    request.getPaymentKey(), request.getOrderId(), request.getAmount());
+                    request.getPaymentKey(),
+                    request.getOrderId(),
+                    request.getAmount()
+            );
+
+            if (!"DONE".equals(tossResponse.getStatus())) {
+                log.error(
+                        "토스 결제 상태가 DONE이 아님 - userId: {}, orderId: {}, status: {}",
+                        userId,
+                        request.getOrderId(),
+                        tossResponse.getStatus()
+                );
+
+                throw new CustomException(ErrorCode.PAYMENT_FAILED);
+            }
 
             Payment payment = Payment.builder()
                     .userId(userId)
@@ -69,10 +84,19 @@ public class PaymentService {
                     .paidAt(now)
                     .expiresAt(now.plusDays(plan.getDurationDays()))
                     .build();
-            return PaymentResponse.from(paymentRepository.save(payment));
+
+            return PaymentResponse.from(
+                    paymentRepository.save(payment)
+            );
 
         } catch (Exception e) {
-            log.error("결제 승인 실패 - userId: {}, paymentKey: {}", userId, request.getPaymentKey(), e);
+
+            log.error(
+                    "결제 승인 실패 - userId: {}, paymentKey: {}",
+                    userId,
+                    request.getPaymentKey(),
+                    e
+            );
 
             Payment failedPayment = Payment.builder()
                     .userId(userId)
@@ -81,9 +105,12 @@ public class PaymentService {
                     .status(Payment.PaymentStatus.FAILED)
                     .externalPaymentId(request.getPaymentKey())
                     .build();
+
             paymentRepository.save(failedPayment);
 
-            throw new CustomException(ErrorCode.PAYMENT_FAILED);
+            throw new CustomException(
+                    ErrorCode.PAYMENT_FAILED
+            );
         }
     }
 
@@ -94,4 +121,42 @@ public class PaymentService {
                 .map(PaymentResponse::from)
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public PaymentResponse cancelSubscription(Long userId) {
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Payment payment = paymentRepository
+                .findFirstByUserIdAndStatusAndExpiresAtAfterAndPlanIdNotOrderByPaidAtDesc(
+                        userId,
+                        Payment.PaymentStatus.SUCCESS,
+                        now,
+                        1
+                )
+                .orElseThrow(() ->
+                        new CustomException(
+                                ErrorCode.ACTIVE_SUBSCRIPTION_NOT_FOUND
+                        )
+                );
+
+        // 이미 해지 예약된 경우 그대로 반환
+        if (Boolean.TRUE.equals(payment.getCancelAtPeriodEnd())) {
+            return PaymentResponse.from(payment);
+        }
+
+        // 해지 예약
+        payment.scheduleCancellation();
+
+        log.info(
+                "구독 해지 예약 완료 - userId: {}, paymentId: {}, planId: {}, expiresAt: {}",
+                userId,
+                payment.getId(),
+                payment.getPlanId(),
+                payment.getExpiresAt()
+        );
+
+        return PaymentResponse.from(payment);
+    }
+
 }

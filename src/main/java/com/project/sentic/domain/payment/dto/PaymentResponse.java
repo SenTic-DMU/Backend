@@ -18,6 +18,8 @@ public class PaymentResponse {
     private LocalDateTime paidAt;
     private LocalDateTime expiresAt;
     private LocalDateTime createdAt;
+    private Boolean cancelAtPeriodEnd;
+    private LocalDateTime cancelledAt;
 
     public static PaymentResponse from(Payment payment) {
         return PaymentResponse.builder()
@@ -29,6 +31,8 @@ public class PaymentResponse {
                 .paidAt(payment.getPaidAt())
                 .expiresAt(payment.getExpiresAt())
                 .createdAt(payment.getCreatedAt())
+                .cancelAtPeriodEnd(payment.getCancelAtPeriodEnd())
+                .cancelledAt(payment.getCancelledAt())
                 .build();
     }
 }
