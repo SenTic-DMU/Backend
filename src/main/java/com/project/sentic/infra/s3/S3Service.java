@@ -1,18 +1,20 @@
 package com.project.sentic.infra.s3;
 
-import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.project.sentic.global.exception.CustomException;
 import com.project.sentic.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-import java.io.ByteArrayInputStream;
-import java.util.Date;
+import java.net.URI;
+import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
@@ -20,7 +22,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class S3Service {
 
-    private final AmazonS3 amazonS3;
+    private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
@@ -29,24 +32,44 @@ public class S3Service {
     public String uploadAudio(byte[] audioData, String prefix) {
         String fileName = prefix + "/" + UUID.randomUUID() + ".mp3";
 
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentType("audio/mpeg");
-        metadata.setContentLength(audioData.length);
-
         try {
-            amazonS3.putObject(bucket, fileName, new ByteArrayInputStream(audioData), metadata);
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(fileName)
+                    .contentType("audio/mpeg")
+                    .contentLength((long) audioData.length)
+                    .build();
+
+            s3Client.putObject(
+                    putObjectRequest,
+                    RequestBody.fromBytes(audioData)
+            );
+
             log.info("[S3] 업로드 완료: {}", fileName);
 
             // Presigned URL 생성 (1시간 유효)
-            Date expiration = new Date(System.currentTimeMillis() + 1000 * 60 * 60);
-            GeneratePresignedUrlRequest presignedUrlRequest =
-                    new GeneratePresignedUrlRequest(bucket, fileName)
-                            .withMethod(HttpMethod.GET)
-                            .withExpiration(expiration);
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(fileName)
+                    .build();
 
-            return amazonS3.generatePresignedUrl(presignedUrlRequest).toString();
+            GetObjectPresignRequest presignRequest =
+                    GetObjectPresignRequest.builder()
+                            .signatureDuration(Duration.ofHours(1))
+                            .getObjectRequest(getObjectRequest)
+                            .build();
+
+            String presignedUrl = s3Presigner
+                    .presignGetObject(presignRequest)
+                    .url()
+                    .toString();
+
+            log.info("[S3] Presigned URL 생성 완료: {}", fileName);
+
+            return presignedUrl;
+
         } catch (Exception e) {
-            log.error("[S3] 업로드 실패: {}", e.getMessage());
+            log.error("[S3] 업로드 실패: {}", e.getMessage(), e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
@@ -54,11 +77,22 @@ public class S3Service {
     // 파일 삭제
     public void deleteFile(String fileUrl) {
         try {
-            String fileName = fileUrl.substring(fileUrl.indexOf(".com/") + 5);
-            amazonS3.deleteObject(bucket, fileName);
+            URI uri = URI.create(fileUrl);
+
+            String path = uri.getPath();
+            String fileName = path.startsWith("/")
+                    ? path.substring(1)
+                    : path;
+
+            s3Client.deleteObject(builder -> builder
+                    .bucket(bucket)
+                    .key(fileName)
+            );
+
             log.info("[S3] 삭제 완료: {}", fileName);
+
         } catch (Exception e) {
-            log.error("[S3] 삭제 실패: {}", e.getMessage());
+            log.error("[S3] 삭제 실패: {}", e.getMessage(), e);
         }
     }
 }

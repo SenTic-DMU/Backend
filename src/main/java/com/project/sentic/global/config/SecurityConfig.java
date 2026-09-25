@@ -75,8 +75,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // AI 선행 검증용 (검증 완료 후 제거)
-                        .requestMatchers("/api/ai/test/**").permitAll()
+                        // AI 테스트 API - 인증된 사용자만 접근 허용 (운영 전 제거 예정)
+                        .requestMatchers("/api/ai/test/**").authenticated()
 
                         // 누구나 접근 가능
                         .requestMatchers("/api/faq/**").permitAll()
