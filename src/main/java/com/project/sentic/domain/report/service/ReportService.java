@@ -135,15 +135,14 @@ public class ReportService {
                 .build();
     }
 
-    // 4. 약점 TOP 3 (주간)
+    // 4. 약점 TOP 3 (주간) - GPT 분석
     public WeakPointsResponse getWeakPoints(Long userId, LocalDate date) {
         LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate sunday = monday.plusDays(6);
 
         List<Long> roomIds = messageRepository.findDistinctRoomIdsByUserId(userId);
         if (roomIds.isEmpty()) {
-            return WeakPointsResponse.builder()
-                    .words(List.of()).grammar(List.of()).expressions(List.of()).build();
+            return WeakPointsResponse.builder().weakPoints(List.of()).build();
         }
 
         List<Message> weekMessages = messageRepository.findByRoomIdIn(roomIds).stream()
@@ -155,52 +154,81 @@ public class ReportService {
 
         List<Long> messageIds = weekMessages.stream().map(Message::getId).collect(Collectors.toList());
         if (messageIds.isEmpty()) {
-            return WeakPointsResponse.builder()
-                    .words(List.of()).grammar(List.of()).expressions(List.of()).build();
+            return WeakPointsResponse.builder().weakPoints(List.of()).build();
         }
 
         List<Feedback> feedbacks = feedbackRepository.findByMessageIdIn(messageIds);
-
-        return WeakPointsResponse.builder()
-                .words(extractErrorItems(feedbacks, "word"))
-                .grammar(extractErrorItems(feedbacks, "grammar"))
-                .expressions(extractErrorItems(feedbacks, "expression"))
-                .build();
-    }
-
-    private List<WeakPointsResponse.ErrorItem> extractErrorItems(List<Feedback> feedbacks, String type) {
-        Map<String, Integer> counts = new HashMap<>();
-
-        for (Feedback f : feedbacks) {
-            String json = switch (type) {
-                case "word" -> f.getWordErrors();
-                case "grammar" -> f.getGrammarErrors();
-                case "expression" -> f.getExpressionErrors();
-                default -> null;
-            };
-            if (json == null || json.isBlank()) continue;
-
-            try {
-                JsonNode nodes = objectMapper.readTree(json);
-                if (nodes.isArray()) {
-                    for (JsonNode node : nodes) {
-                        String text = node.has("original") ? node.get("original").asText() : "";
-                        counts.merge(text, 1, Integer::sum);
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("[Report] 에러 파싱 실패: {}", e.getMessage());
-            }
+        if (feedbacks.isEmpty()) {
+            return WeakPointsResponse.builder().weakPoints(List.of()).build();
         }
 
-        return counts.entrySet().stream()
-                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                .limit(3)
-                .map(e -> WeakPointsResponse.ErrorItem.builder()
-                        .text(e.getKey())
-                        .count(e.getValue())
-                        .build())
-                .collect(Collectors.toList());
+        // 모든 오류를 모아서 GPT에게 분석 요청
+        StringBuilder errorSummary = new StringBuilder();
+        for (Feedback f : feedbacks) {
+            appendErrors(errorSummary, f.getWordErrors(), "단어");
+            appendErrors(errorSummary, f.getGrammarErrors(), "문법");
+            appendErrors(errorSummary, f.getExpressionErrors(), "표현");
+        }
+
+        String prompt = """
+            아래는 영어 학습자가 이번 주에 받은 피드백 목록입니다.
+            이 데이터를 분석해서 학습자의 약점 TOP 3를 알려주세요.
+            
+            단어/문법/표현으로 나누지 말고, 전체적으로 어떤 부분이 약한지 문장으로 설명해주세요.
+            예시: "전치사 사용이 약해요. at/in/on 구분이 자주 틀려요."
+            
+            피드백 목록:
+            %s
+            
+            JSON 배열로만 응답해주세요:
+            [{"rank": 1, "description": "약점 설명", "count": 관련오류횟수}]
+            최대 3개만. 한국어로 작성.
+            """.formatted(errorSummary.toString());
+
+        try {
+            String result = openAiService.chatWithSystem(
+                    "You are an English learning analyst. Reply with JSON array only.",
+                    prompt
+            );
+            String cleaned = result.replace("```json", "").replace("```", "").trim();
+            JsonNode nodes = objectMapper.readTree(cleaned);
+
+            List<WeakPointsResponse.WeakPointItem> weakPoints = new ArrayList<>();
+            if (nodes.isArray()) {
+                for (JsonNode node : nodes) {
+                    weakPoints.add(WeakPointsResponse.WeakPointItem.builder()
+                            .rank(node.get("rank").asInt())
+                            .description(node.get("description").asText())
+                            .count(node.get("count").asInt())
+                            .build());
+                }
+            }
+
+            return WeakPointsResponse.builder().weakPoints(weakPoints).build();
+        } catch (Exception e) {
+            log.error("[Report] 약점 분석 실패: {}", e.getMessage());
+            return WeakPointsResponse.builder().weakPoints(List.of()).build();
+        }
+    }
+
+    private void appendErrors(StringBuilder sb, String errorsJson, String category) {
+        if (errorsJson == null || errorsJson.isBlank()) return;
+        try {
+            JsonNode nodes = objectMapper.readTree(errorsJson);
+            if (nodes.isArray()) {
+                for (JsonNode node : nodes) {
+                    String original = node.has("original") ? node.get("original").asText() : "";
+                    String corrected = node.has("corrected") ? node.get("corrected").asText()
+                            : node.has("suggested") ? node.get("suggested").asText() : "";
+                    String explanation = node.has("explanation") ? node.get("explanation").asText() : "";
+                    sb.append(category).append(": ").append(original)
+                            .append(" → ").append(corrected)
+                            .append(" (").append(explanation).append(")\n");
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[Report] 에러 파싱 실패: {}", e.getMessage());
+        }
     }
 
     // 5. 성장 그래프 (최근 8주)
