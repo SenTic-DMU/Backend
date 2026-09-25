@@ -9,14 +9,13 @@ import java.util.List;
 @Builder
 public class WeakPointsResponse {
 
-    private List<ErrorItem> words;
-    private List<ErrorItem> grammar;
-    private List<ErrorItem> expressions;
+    private List<WeakPointItem> weakPoints;
 
     @Getter
     @Builder
-    public static class ErrorItem {
-        private String text;
+    public static class WeakPointItem {
+        private int rank;
+        private String description;
         private int count;
     }
 }
