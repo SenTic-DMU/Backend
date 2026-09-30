@@ -184,6 +184,13 @@ public class UserSettings {
         long minutes = java.time.Duration.between(sessionStartedAt, LocalDateTime.now()).toMinutes();
         DayOfWeek today = LocalDate.now().getDayOfWeek();
 
+        // 세션 최대 시간 제한 (예: 180분 = 3시간)
+        if (minutes > 180) {
+            minutes = 0;  // 비정상 세션은 버림
+            this.sessionStartedAt = null;
+            return 0;
+        }
+
         // 요일별 학습 시간 누적
         switch (today) {
             case MONDAY    -> this.monMinutes += (int) minutes;
