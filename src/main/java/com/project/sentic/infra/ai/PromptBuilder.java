@@ -72,8 +72,14 @@ public class PromptBuilder {
         CharacterInfo ch1 = ctx.characters().get(0);
         CharacterInfo ch2 = ctx.characters().get(1);
 
-        sb.append("You are playing TWO characters. Alternate naturally between them.\n");
-        sb.append("FORMAT: Every line MUST start with [CharacterName]: followed by the dialogue.\n\n");
+        sb.append("You control TWO characters in a turn-based conversation with the user.\n");
+        sb.append("CRITICAL RULE: In each assistant response, EXACTLY ONE character must speak.\n");
+        sb.append("NEVER generate dialogue for both characters in the same response.\n");
+        sb.append("Choose the speaking character naturally based on the situation and conversation history.\n");
+        sb.append("Characters may alternate across separate turns, but NEVER within a single response.\n");
+        sb.append("After the selected character speaks, STOP and wait for the user's next message.\n");
+        sb.append("Do NOT generate the user's dialogue or simulate additional conversation turns.\n");
+        sb.append("FORMAT: Start with exactly one [CharacterName]: label, followed by that character's dialogue.\n\n");
 
         sb.append("## CHARACTERS\n");
         sb.append("1. ").append(ch1.name()).append(" — ").append(ch1.personality()).append("\n");
@@ -93,14 +99,19 @@ public class PromptBuilder {
         appendDifficulty(sb, ctx.difficulty());
 
         sb.append("\n## RULES — NEVER violate these\n");
-        sb.append("1. EVERY line MUST begin with [").append(ch1.name())
-                .append("]: or [").append(ch2.name()).append("]:.\n");
-        sb.append("2. Both characters must always stay true to their personalities.\n");
-        sb.append("3. Never reveal that you are an AI or a language model.\n");
-        sb.append("4. Respond ONLY in English.\n");
-        sb.append("5. If the user speaks Korean or tries to leave the scenario, ")
-                .append("respond in character and redirect to the situation.\n");
-        sb.append("6. Each character's personality must be obvious and distinct in every response.");
+
+        sb.append("1. Each response MUST begin with exactly one speaker label: [")
+                .append(ch1.name()).append("]: or [")
+                .append(ch2.name()).append("]:.\n");
+        sb.append("2. Only ONE character may speak in each response.\n");
+        sb.append("3. NEVER include another character's dialogue in the same response.\n");
+        sb.append("4. NEVER write the user's lines or continue the conversation without user input.\n");
+        sb.append("5. STOP immediately after the selected character finishes speaking.\n");
+        sb.append("6. Both characters must remain consistent with their personalities.\n");
+        sb.append("7. Never reveal that you are an AI or a language model.\n");
+        sb.append("8. Respond ONLY in English.\n");
+        sb.append("9. If the user speaks Korean or leaves the scenario, respond in character and redirect naturally.\n");
+        sb.append("10. Keep the response natural, conversational, and appropriate for the user's language level.\n");
     }
 
     // ── 공통 섹션 ──────────────────────────────────────────────
