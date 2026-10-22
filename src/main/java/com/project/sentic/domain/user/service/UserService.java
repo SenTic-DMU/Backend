@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Locale;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -166,37 +169,86 @@ public class UserService {
         throw new CustomException(ErrorCode.USER_NOT_FOUND);
     }
 
-    // 내 리그 + 리그 내 순위 조회
-    public LeagueResponse getMyLeague(Long userId) {
-        UserSettings mySettings = userSettingsRepository.findByUserId(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+    // 내 리그 조회 (기존 호출 호환)
+    public LeagueResponse getMyLeague(Long userId) {
+        return getMyLeague(userId, null);
+    }
+
+    // 리그 및 리그 내 순위 조회
+    public LeagueResponse getMyLeague(Long userId, String tier) {
+
+        UserSettings mySettings = userSettingsRepository
+                .findByUserId(userId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // 기본값은 내 리그
+        var targetLeague = mySettings.getLeague();
+
+        // tier가 전달되면 해당 리그로 변경
+        if (tier != null) {
+            if (tier.isBlank()) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "tier 값이 비어 있습니다."
+                );
+            }
+
+            try {
+                targetLeague = Enum.valueOf(
+                        targetLeague.getDeclaringClass(),
+                        tier.trim().toUpperCase(Locale.ROOT)
+                );
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "존재하지 않는 리그입니다."
+                );
+            }
+        }
+
+        // 선택한 리그의 회원을 주간 점수 내림차순으로 조회
         List<UserSettings> leagueMembers = userSettingsRepository
-                .findByLeagueOrderByWeeklyScoreDesc(mySettings.getLeague());
+                .findByLeagueOrderByWeeklyScoreDesc(targetLeague);
 
         int myRank = 0;
-        List<LeagueResponse.LeagueMemberItem> members = new ArrayList<>();
+
+        List<LeagueResponse.LeagueMemberItem> members =
+                new ArrayList<>();
 
         for (int i = 0; i < leagueMembers.size(); i++) {
+
             UserSettings s = leagueMembers.get(i);
-            User user = userRepository.findById(s.getUserId()).orElse(null);
+
+            User user = userRepository
+                    .findById(s.getUserId())
+                    .orElse(null);
+
             if (user == null) continue;
 
+            // 현재 사용자가 조회 리그에 속해 있을 때만 순위 설정
             if (s.getUserId().equals(userId)) {
                 myRank = i + 1;
             }
 
-            members.add(LeagueResponse.LeagueMemberItem.builder()
-                    .rank(i + 1)
-                    .userId(user.getId())
-                    .nickname(user.getNickname())
-                    .weeklyScore(s.getWeeklyScore())
-                    .featuredBadges(badgeService.getFeaturedBadges(user.getId()))
-                    .build());
+            members.add(
+                    LeagueResponse.LeagueMemberItem.builder()
+                            .rank(i + 1)
+                            .userId(user.getId())
+                            .nickname(user.getNickname())
+                            .weeklyScore(s.getWeeklyScore())
+                            .featuredBadges(
+                                    badgeService.getFeaturedBadges(
+                                            user.getId()
+                                    )
+                            )
+                            .build()
+            );
         }
 
         return LeagueResponse.builder()
-                .league(mySettings.getLeague().name())
+                .league(targetLeague.name())
                 .myRank(myRank)
                 .myScore(mySettings.getWeeklyScore())
                 .totalMembers(leagueMembers.size())
