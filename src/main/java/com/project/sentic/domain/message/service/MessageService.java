@@ -32,6 +32,7 @@ import com.project.sentic.domain.feedback.entity.Feedback;
 import com.project.sentic.domain.feedback.repository.FeedbackRepository;
 import com.project.sentic.infra.ai.VoiceMapper;
 import com.project.sentic.domain.user.repository.UserSettingsRepository;
+import com.project.sentic.domain.payment.service.PremiumAccessService;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +57,7 @@ public class MessageService {
     private final UserSettingsRepository userSettingsRepository;
     private final BadgeService badgeService;
     private final ReportService reportService;
+    private final PremiumAccessService premiumAccessService;
 
     @Transactional
     public ChatResponse chat(Long userId, Long roomId, String content) {
@@ -72,7 +74,8 @@ public class MessageService {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        if (!settings.canSendMessage("CHAT")) {
+        if (!premiumAccessService.isPremium(userId)
+                && !settings.canSendMessage("CHAT")) {
             throw new CustomException(ErrorCode.DAILY_LIMIT_EXCEEDED);
         }
 
@@ -154,7 +157,8 @@ public class MessageService {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        if (!settings.canSendMessage("VOICE")) {
+        if (!premiumAccessService.isPremium(userId)
+                && !settings.canSendMessage("VOICE")) {
             throw new CustomException(ErrorCode.DAILY_LIMIT_EXCEEDED);
         }
 

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.project.sentic.domain.user.repository.UserSettingsRepository;
+import com.project.sentic.domain.payment.service.PremiumAccessService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ public class RoomService {
     private final ObjectMapper objectMapper;
     private final ContentFilterService contentFilterService;
     private final UserSettingsRepository userSettingsRepository;
+    private final PremiumAccessService premiumAccessService;
 
     @Transactional
     public RoomResponse createRoom(Long userId, RoomCreateRequest request) {
@@ -35,7 +37,7 @@ public class RoomService {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        if (!settings.isPremium()) {
+        if (!premiumAccessService.isPremium(userId)) {
             long roomCount = roomRepository.countByUserIdAndRoomTypeAndDeletedFalse(userId, request.getRoomType());
             if (roomCount >= 3) {
                 throw new CustomException(ErrorCode.ROOM_LIMIT_EXCEEDED);
