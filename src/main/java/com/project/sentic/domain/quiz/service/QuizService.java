@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.project.sentic.domain.feedback.entity.Feedback;
 import com.project.sentic.domain.feedback.repository.FeedbackRepository;
 import java.util.ArrayList;
+import com.project.sentic.domain.payment.service.PremiumAccessService;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +38,7 @@ public class QuizService {
     private final UserSettingsRepository userSettingsRepository;
     private final FeedbackRepository feedbackRepository;
     private final BadgeService badgeService;
+    private final PremiumAccessService premiumAccessService;
 
     // 퀴즈 문제 임시 저장 (quizId → 문제 목록)
     // 나가면 사라지는 일회성이라 DB 대신 메모리 사용
@@ -44,7 +46,7 @@ public class QuizService {
 
     // 퀴즈 시작 (5문제 출제)
     @Transactional
-    public QuizStartResponse startQuiz(Long userId, String userPlan) {
+    public QuizStartResponse startQuiz(Long userId) {
         // 1. 사용자의 모든 대화에서 메시지 가져오기
         List<Message> allMessages = messageRepository.findByRoomIdIn(
                 getRoomIdsForUser(userId)
@@ -105,7 +107,7 @@ public class QuizService {
                 .collect(Collectors.toList());
 
         // 4. GPT에게 문제 생성 요청
-        String questionTypes = getQuestionTypes(userPlan);
+        String questionTypes = getQuestionTypes(userId);
         List<QuizQuestionDto> questions = generateQuestions(selected, questionTypes);
 
         // 5. 퀴즈 세션 DB 저장
@@ -214,12 +216,14 @@ public class QuizService {
     }
 
     // 요금제별 퀴즈 유형
-    private String getQuestionTypes(String userPlan) {
-        if (userPlan == null || userPlan.equalsIgnoreCase("FREE")) {
-            return "FILL_BLANK only";
+    private String getQuestionTypes(Long userId) {
+        if (premiumAccessService.isPremium(userId)) {
+            return "FILL_BLANK, ARRANGE, MULTIPLE_CHOICE (mix randomly)";
         }
-        return "FILL_BLANK, ARRANGE, MULTIPLE_CHOICE (mix randomly)";
+
+        return "FILL_BLANK only";
     }
+
 
     // 사용자의 모든 방 ID 가져오기
     private List<Long> getRoomIdsForUser(Long userId) {

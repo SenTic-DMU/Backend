@@ -22,9 +22,8 @@ public class QuizController {
     @Operation(summary = "퀴즈 시작", description = "대화 내역에서 랜덤 5문제 출제. 무료: 빈칸채우기만, 유료: 전체 유형")
     @PostMapping("/start")
     public ApiResponse<QuizStartResponse> startQuiz(
-            @AuthenticationPrincipal Long userId,
-            @RequestParam(defaultValue = "FREE") String plan) {
-        return ApiResponse.success(quizService.startQuiz(userId, plan));
+            @AuthenticationPrincipal Long userId) {
+        return ApiResponse.success(quizService.startQuiz(userId));
     }
 
     @Operation(summary = "퀴즈 답안 제출", description = "5문제 답안 제출 후 채점 결과 반환. 나가면 결과 사라짐.")
