@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -97,12 +99,21 @@ public class UserController {
 
     // ── 리그 ──────────────────────────────────
 
-    @Operation(summary = "내 리그 + 리그 내 순위 조회")
+
+    @Operation(
+            summary = "리그 및 리그 내 순위 조회",
+            description = "tier 파라미터로 다른 리그 조회 가능. 생략 시 내 리그 조회."
+    )
     @GetMapping("/league")
     public ApiResponse<LeagueResponse> getMyLeague(
-            @AuthenticationPrincipal Long userId) {
-        return ApiResponse.success(userService.getMyLeague(userId));
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) String tier) {
+
+        return ApiResponse.success(
+                userService.getMyLeague(userId, tier)
+        );
     }
+
 
     // ── 학습 레포트 ──────────────────────────────────
 
@@ -138,12 +149,27 @@ public class UserController {
         return ApiResponse.success(reportService.getWeakPoints(userId, targetDate));
     }
 
-    @Operation(summary = "실력 성장 그래프 (최근 8주)")
+
+    @Operation(
+            summary = "실력 성장 그래프",
+            description = "최근 N주 성장 추이 조회. 기본 8주, 최대 52주."
+    )
     @GetMapping("/growth-trend")
     public ApiResponse<List<GrowthTrendResponse>> getGrowthTrend(
-            @AuthenticationPrincipal Long userId) {
-        return ApiResponse.success(reportService.getGrowthTrend(userId));
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(defaultValue = "8") int weeks) {
+
+        if (weeks < 1 || weeks > 52) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "weeks는 1~52 범위여야 합니다."
+            );
+        }
+
+        return ApiResponse.success(
+                reportService.getGrowthTrend(userId, weeks));
     }
+
 
     @Operation(summary = "AI 월말 종합평가", description = "month 파라미터: YYYY-MM 형식. 유료 회원만 가능.")
     @GetMapping("/monthly-review")
