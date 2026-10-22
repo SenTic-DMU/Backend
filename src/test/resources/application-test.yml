@@ -1,0 +1,55 @@
+
+# 테스트 전용 설정
+spring:
+  datasource:
+    url: jdbc:h2:mem:sentic_test;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  sql:
+    init:
+      mode: never
+
+  mail:
+    from: test@example.com
+
+# OpenAI 테스트 설정
+ai:
+  openai:
+    api-key: test-dummy-key
+    base-url: https://api.openai.com/v1
+    chat-model: gpt-4o
+    stt-model: whisper-1
+    tts-model: tts-1
+
+# AWS 테스트 설정
+cloud:
+  aws:
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket: sentic-test-only
+
+# JWT 테스트 설정
+jwt:
+  secret: c2VudGljLXRlc3Qtb25seS1qd3Qtc2VjcmV0LTMyLWJ5dGVzLW9yLW1vcmU=
+  access-token-expiry: 3600000
+  refresh-token-expiry: 604800000
+
+# 카카오 OAuth2 테스트 설정
+oauth2:
+  kakao:
+    client-id: test-client-id
+    client-secret: test-client-secret
+    redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+
+# 토스페이먼츠 테스트 설정
+toss:
+  payments:
+    secret-key: test-dummy-key
