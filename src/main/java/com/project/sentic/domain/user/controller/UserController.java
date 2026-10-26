@@ -12,6 +12,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,6 +26,20 @@ public class UserController {
 
     private final UserService userService;
     private final ReportService reportService;
+
+    @Operation(summary = "내 프로필 사진 업로드")
+    @PostMapping(
+            value = "/me/profile-image",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ApiResponse<ProfileImageResponse> uploadProfileImage(
+            @AuthenticationPrincipal Long userId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        return ApiResponse.success(
+                userService.uploadProfileImage(userId, file)
+        );
+    }
 
     // ── 마이페이지 ──────────────────────────────────
 
