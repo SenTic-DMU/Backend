@@ -278,7 +278,7 @@ public class UserSettings {
     }
 
     // 대화 가능 여부 (타입별 체크)
-    public boolean canSendMessage(String roomType) {
+    public boolean canSendMessage(String roomType, int dailyLimit) {
         LocalDate today = LocalDate.now();
 
         // 날짜 바뀌면 카운트 초기화
@@ -293,9 +293,9 @@ public class UserSettings {
 
         // 무료는 각각 30번 제한
         if ("VOICE".equals(roomType)) {
-            return dailyVoiceCount < 30;
+            return dailyVoiceCount < dailyLimit;
         } else {
-            return dailyChatCount < 30;
+            return dailyVoiceCount < dailyLimit;
         }
     }
 

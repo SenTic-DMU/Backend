@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.project.sentic.domain.user.repository.UserSettingsRepository;
+import com.project.sentic.domain.payment.service.PlanLimitService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ public class RoomService {
     private final ObjectMapper objectMapper;
     private final ContentFilterService contentFilterService;
     private final UserSettingsRepository userSettingsRepository;
+    private final PlanLimitService planLimitService;
 
     @Transactional
     public RoomResponse createRoom(Long userId, RoomCreateRequest request) {
@@ -37,7 +39,7 @@ public class RoomService {
 
         if (!settings.isPremium()) {
             long roomCount = roomRepository.countByUserIdAndRoomTypeAndDeletedFalse(userId, request.getRoomType());
-            if (roomCount >= 3) {
+            if (roomCount >= planLimitService.getRoomLimit()) {
                 throw new CustomException(ErrorCode.ROOM_LIMIT_EXCEEDED);
             }
         }
