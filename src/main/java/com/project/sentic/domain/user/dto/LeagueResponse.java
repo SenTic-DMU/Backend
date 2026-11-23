@@ -22,6 +22,7 @@ public class LeagueResponse {
         private int rank;
         private Long userId;
         private String nickname;
+        private String profileImageUrl;
         private int weeklyScore;
         private List<BadgeResponse> featuredBadges;
     }

@@ -74,6 +74,74 @@ public class S3Service {
         }
     }
 
+    // 프로필 이미지 업로드 - S3에는 원본 파일을 저장하고 key를 반환
+    public String uploadProfileImage(
+            byte[] imageData,
+            Long userId,
+            String extension,
+            String contentType
+    ) {
+        String key = "profile-images/" + userId + "/"
+                + UUID.randomUUID() + "." + extension;
+
+        try {
+            PutObjectRequest request = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .contentType(contentType)
+                    .contentLength((long) imageData.length)
+                    .build();
+
+            s3Client.putObject(request, RequestBody.fromBytes(imageData));
+
+            log.info("[S3] 프로필 이미지 업로드 완료: {}", key);
+
+            return key;
+
+        } catch (Exception e) {
+            log.error("[S3] 프로필 이미지 업로드 실패", e);
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 프로필 이미지 표시용 URL 생성
+    public String getProfileImageUrl(String storedImage) {
+
+        if (storedImage == null || storedImage.isBlank()) {
+            return null;
+        }
+
+        // 기존 소셜 로그인 프로필 이미지 URL 지원
+        if (storedImage.startsWith("https://")) {
+            return storedImage;
+        }
+
+        if (!storedImage.startsWith("profile-images/")) {
+            return null;
+        }
+
+        try {
+            GetObjectRequest request = GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storedImage)
+                    .build();
+
+            GetObjectPresignRequest presignRequest =
+                    GetObjectPresignRequest.builder()
+                            .signatureDuration(Duration.ofHours(1))
+                            .getObjectRequest(request)
+                            .build();
+
+            return s3Presigner.presignGetObject(presignRequest)
+                    .url()
+                    .toString();
+
+        } catch (Exception e) {
+            log.error("[S3] 프로필 이미지 URL 생성 실패", e);
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     // 파일 삭제
     public void deleteFile(String fileUrl) {
         try {
