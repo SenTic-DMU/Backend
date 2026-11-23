@@ -32,6 +32,7 @@ import com.project.sentic.domain.feedback.entity.Feedback;
 import com.project.sentic.domain.feedback.repository.FeedbackRepository;
 import com.project.sentic.infra.ai.VoiceMapper;
 import com.project.sentic.domain.user.repository.UserSettingsRepository;
+import com.project.sentic.domain.payment.service.PlanLimitService;
 import com.project.sentic.domain.payment.service.PremiumAccessService;
 
 import java.util.Collections;
@@ -57,6 +58,7 @@ public class MessageService {
     private final UserSettingsRepository userSettingsRepository;
     private final BadgeService badgeService;
     private final ReportService reportService;
+    private final PlanLimitService planLimitService;
     private final PremiumAccessService premiumAccessService;
 
     @Transactional
@@ -75,7 +77,7 @@ public class MessageService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         if (!premiumAccessService.isPremium(userId)
-                && !settings.canSendMessage("CHAT")) {
+                && !settings.canSendMessage("CHAT", planLimitService.getDailyMessageLimit())) {
             throw new CustomException(ErrorCode.DAILY_LIMIT_EXCEEDED);
         }
 
@@ -158,7 +160,7 @@ public class MessageService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         if (!premiumAccessService.isPremium(userId)
-                && !settings.canSendMessage("VOICE")) {
+                && !settings.canSendMessage("VOICE", planLimitService.getDailyMessageLimit())) {
             throw new CustomException(ErrorCode.DAILY_LIMIT_EXCEEDED);
         }
 

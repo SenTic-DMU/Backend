@@ -30,6 +30,9 @@ public class SubscriptionPlan {
     @Column(name = "room_limit")
     private Integer roomLimit;
 
+    @Column(name = "daily_message_limit")
+    private Integer dailyMessageLimit;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private boolean active = true;
