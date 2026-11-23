@@ -288,9 +288,6 @@ public class UserSettings {
             this.lastMessageDate = today;
         }
 
-        // 프리미엄은 무제한
-        if (isPremium()) return true;
-
         // 무료는 각각 30번 제한
         if ("VOICE".equals(roomType)) {
             return dailyVoiceCount < 30;

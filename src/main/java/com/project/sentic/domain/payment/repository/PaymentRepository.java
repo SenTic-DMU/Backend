@@ -24,4 +24,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             LocalDateTime now,
             Integer excludedPlanId
     );
+
+    Optional<Payment> findFirstByExternalPaymentIdAndStatus(
+            String externalPaymentId,
+            Payment.PaymentStatus status
+    );
 }

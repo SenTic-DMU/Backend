@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.project.sentic.domain.payment.service.PremiumAccessService;
 
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
@@ -39,6 +40,7 @@ public class ReportService {
     private final UserSettingsRepository userSettingsRepository;
     private final OpenAiService openAiService;
     private final ObjectMapper objectMapper;
+    private final PremiumAccessService premiumAccessService;
 
     // 1. 주간 학습 통계
     public StudyStatsResponse getStudyStats(Long userId, LocalDate date) {
@@ -231,13 +233,14 @@ public class ReportService {
         }
     }
 
-    // 5. 성장 그래프 (최근 8주)
-    public List<GrowthTrendResponse> getGrowthTrend(Long userId) {
+    // 5. 성장 그래프 (요청한 최근 N주)
+    public List<GrowthTrendResponse> getGrowthTrend(
+            Long userId, int weeks) {
         List<GrowthTrendResponse> trend = new ArrayList<>();
         LocalDate today = LocalDate.now();
         List<Long> roomIds = messageRepository.findDistinctRoomIdsByUserId(userId);
 
-        for (int i = 7; i >= 0; i--) {
+        for (int i = weeks - 1; i >= 0; i--) {
             LocalDate weekStart = today.minusWeeks(i).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             LocalDate weekEnd = weekStart.plusDays(6);
 
@@ -286,7 +289,7 @@ public class ReportService {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        if (!settings.isPremium()) {
+        if (!premiumAccessService.isPremium(userId)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
 

@@ -26,11 +26,19 @@ public class MyPageResponse {
     private int streakDays;       // 연속 학습일
 
     public static MyPageResponse of(User user, UserSettings settings) {
+        return of(user, settings, user.getProfileImage());
+    }
+
+    public static MyPageResponse of(
+            User user,
+            UserSettings settings,
+            String profileImageUrl
+    ) {
         return MyPageResponse.builder()
                 .id(user.getId())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
-                .profileImage(user.getProfileImage())
+                .profileImage(profileImageUrl)
                 .provider(user.getProvider().name())
                 .role(user.getRole().name())
                 .defaultDifficulty(settings.getDefaultDifficulty().name())
